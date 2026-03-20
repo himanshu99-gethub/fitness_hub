@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - Fitness Hub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .payment-container {
+            max-width: 500px;
+            margin: 40px auto;
+        }
+
+        .payment-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .payment-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .payment-header h2 {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .payment-header p {
+            color: #999;
+            font-size: 0.95rem;
+        }
+
+        .plan-summary {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .plan-summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .plan-summary-item:last-child {
+            border-top: 2px solid rgba(102, 126, 234, 0.2);
+            padding-top: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        .plan-summary-item label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .plan-summary-item .value {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .payment-methods {
+            margin-bottom: 25px;
+        }
+
+        .payment-methods h5 {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .method-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .method-btn {
+            flex: 1;
+            min-width: 120px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            color: #666;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .method-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .method-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .payment-methods-content {
+            display: none;
+        }
+
+        .payment-methods-content.active {
+            display: block;
+        }
+
+        .payment-note {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 5px;
+            color: #555;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+
+        .btn-pay {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+        }
+
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-pay:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-back-payment {
+            width: 100%;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-back-payment:hover {
+            color: #764ba2;
+            border-color: #764ba2;
+        }
+
+        .payment-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 5px;
+            color: #856404;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+
+        .security-badge {
+            text-align: center;
+            color: #999;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .security-badge i {
+            color: #28a745;
+            margin-right: 5px;
+        }
+
+        .loading-payment {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner-border-lg {
+            width: 50px;
+            height: 50px;
+        }
+
+        @media (max-width: 768px) {
+            .payment-container {
+                max-width: 100%;
+                margin: 20px auto;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .method-tabs {
+                gap: 8px;
+            }
+
+            .method-btn {
+                min-width: 100px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Session Check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = localStorage.getItem('fitnesshub_session');
+            if (!session) {
+                window.location.href = '../pages/login.html';
+            }
+        });
+    </script>
+
+    <div class="payment-container">
+        <div class="payment-card">
+            <!-- Header -->
+            <div class="payment-header">
+                <h2>💳 Complete Payment</h2>
+                <p>Secure payment to activate your membership</p>
+            </div>
+
+            <!-- Plan Summary -->
+            <div class="plan-summary">
+                <div class="plan-summary-item">
+                    <label>Plan Type:</label>
+                    <span class="value" id="summaryPlanName">-</span>
+                </div>
+                <div class="plan-summary-item">
+                    <label>Duration:</label>
+                    <span class="value">1 Month</span>
+                </div>
+                <div class="plan-summary-item">
+                    <label>Amount:</label>
+                    <span class="value" id="summaryAmount">₹0</span>
+                </div>
+            </div>
+
+            <!-- Warning -->
+            <div class="payment-warning">
+                <i class="fas fa-exclamation-triangle"></i> This is a test payment. Your membership will be activated immediately upon completion.
+            </div>
+
+            <!-- Payment Form -->
+            <form id="paymentForm">
+                <!-- Payment Methods -->
+                <div class="payment-methods">
+                    <h5>Select Payment Method</h5>
+                    <div class="method-tabs">
+                        <button type="button" class="method-btn active" data-method="card" onclick="switchPaymentMethod('card')">
+                            <i class="fas fa-credit-card"></i> Card
+                        </button>
+                        <button type="button" class="method-btn" data-method="upi" onclick="switchPaymentMethod('upi')">
+                            <i class="fas fa-mobile-alt"></i> UPI
+                        </button>
+                        <button type="button" class="method-btn" data-method="netbanking" onclick="switchPaymentMethod('netbanking')">
+                            <i class="fas fa-landmark"></i> Net Banking
+                        </button>
+                    </div>
+
+                    <!-- Card Payment -->
+                    <div id="card-method" class="payment-methods-content active">
+                        <div class="payment-note">
+                            <i class="fas fa-info-circle"></i> Test: Use any 16-digit number (e.g., 4111111111111111)
+                        </div>
+                        <div class="form-group">
+                            <label>Cardholder Name *</label>
+                            <input type="text" id="cardName" placeholder="John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Card Number *</label>
+                            <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Expiry Date *</label>
+                                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label>CVV *</label>
+                                <input type="text" id="cardCVV" placeholder="123" maxlength="3" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UPI Payment -->
+                    <div id="upi-method" class="payment-methods-content">
+                        <div class="payment-note">
+                            <i class="fas fa-info-circle"></i> Test: Use any UPI ID (e.g., user@upi)
+                        </div>
+                        <div class="form-group">
+                            <label>UPI ID *</label>
+                            <input type="text" id="upiId" placeholder="yourname@upi" required>
+                        </div>
+                    </div>
+
+                    <!-- Net Banking -->
+                    <div id="netbanking-method" class="payment-methods-content">
+                        <div class="payment-note">
+                            <i class="fas fa-info-circle"></i> Select your bank for payment
+                        </div>
+                        <div class="form-group">
+                            <label>Select Bank *</label>
+                            <select id="bankSelect" required>
+                                <option value="">-- Choose Bank --</option>
+                                <option value="HDFC">HDFC Bank</option>
+                                <option value="ICICI">ICICI Bank</option>
+                                <option value="SBI">State Bank of India</option>
+                                <option value="AXIS">Axis Bank</option>
+                                <option value="KOTAK">Kotak Bank</option>
+                                <option value="INDUSIND">IndusInd Bank</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <button type="button" class="btn-pay" id="payBtn" onclick="processPayment()">
+                    <i class="fas fa-lock"></i> Pay Now
+                </button>
+                <button type="button" class="btn-back-payment" onclick="goBackToMembership()">
+                    <i class="fas fa-arrow-left"></i> Back to Membership Selection
+                </button>
+            </form>
+
+            <!-- Load Effect -->
+            <div class="loading-payment" id="loadingPayment">
+                <div class="spinner-border spinner-border-lg mb-3" role="status">
+                    <span class="visually-hidden">Processing...</span>
+                </div>
+                <p>Processing your payment...</p>
+            </div>
+
+            <!-- Security Badge -->
+            <div class="security-badge">
+                <i class="fas fa-shield-alt"></i> Secure and encrypted payment
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/payment.js"></script>
+</body>
+</html>

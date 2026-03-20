@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Fitness Hub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css" rel="stylesheet">
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="../assets/css/dashboard-style.css" rel="stylesheet" id="themeStylesheet">
+    <style>
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 15px rgba(255, 193, 7, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+            }
+        }
+        
+        #fillProfileSection-pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- User Verification Check -->
+    <script>
+        // Redirect if not logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = localStorage.getItem('fitnesshub_session');
+            if (!session) {
+                window.location.href = '../pages/login.html';
+            }
+        });
+    </script>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="../index.html" class="sidebar-logo">
+                <i class="fas fa-dumbbell"></i> Fitness Hub
+            </a>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li class="active"><a href="#dashboard"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+            <li><a href="#workout"><i class="fas fa-dumbbell"></i> Workout Plans</a></li>
+            <li><a href="#diet"><i class="fas fa-apple-alt"></i> Diet Plans</a></li>
+            <li><a href="#progress"><i class="fas fa-heartbeat"></i> Progress</a></li>
+            <li><a href="#trainers"><i class="fas fa-user-tie"></i> My Trainers</a></li>
+            <li><a href="#billing"><i class="fas fa-credit-card"></i> Billing</a></li>
+            <li><a href="#settings"><i class="fas fa-cog"></i> Settings</a></li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <button class="btn btn-danger w-100" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <h2>Welcome Back, <span id="userName">User</span>! 💪</h2>
+            </div>
+            <div class="top-bar-right">
+                <button class="btn btn-sm btn-outline-secondary" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
+                    <i class="fas fa-sun"></i>
+                </button>
+                <div class="notification-bell">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </div>
+                <div class="user-profile">
+                    <img src="https://via.placeholder.com/40" alt="Profile">
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-container">
+            <!-- User Profile & Membership Card -->
+            <div class="row mb-4">
+                <div class="col-lg-12 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <h5 style="margin: 0;"><i class="fas fa-user-circle"></i> Your Profile & Membership</h5>
+                            <button class="btn btn-sm btn-success" onclick="openEditProfileModal()">
+                                <i class="fas fa-edit"></i> Edit Profile
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Personal Information -->
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-success mb-3"><i class="fas fa-id-card"></i> Personal Information</h6>
+                                    <div class="profile-info">
+                                        <div class="info-row">
+                                            <span class="info-label">Full Name:</span>
+                                            <span class="info-value" id="profileFullName">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Email:</span>
+                                            <span class="info-value" id="profileEmail">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Phone:</span>
+                                            <span class="info-value" id="profilePhone">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Age:</span>
+                                            <span class="info-value" id="profileAge">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Gender:</span>
+                                            <span class="info-value" id="profileGender">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Fitness Profile -->
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-success mb-3"><i class="fas fa-chart-bar"></i> Fitness Profile</h6>
+                                    <div class="profile-info">
+                                        <div class="info-row">
+                                            <span class="info-label">Height:</span>
+                                            <span class="info-value" id="profileHeight">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Weight:</span>
+                                            <span class="info-value" id="profileWeight">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Fitness Goal:</span>
+                                            <span class="info-value" id="profileGoal">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Experience Level:</span>
+                                            <span class="info-value" id="profileExperience">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Joined:</span>
+                                            <span class="info-value" id="profileJoinDate">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+            <!-- Fill Profile Section (Mandatory) -->
+            <div class="row mb-4" id="fillProfileSection" style="display: none;">
+                <div class="col-lg-12">
+                    <div class="dashboard-card" style="border: 3px solid #ffc107; animation: pulse 2s infinite;">
+                        <div class="card-header bg-warning text-dark">
+                            <h5><i class="fas fa-exclamation-circle"></i> Complete Your Profile</h5>
+                            <small>This information is required to proceed</small>
+                        </div>
+                        <div class="card-body">
+                            <form id="fillProfileForm">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label"><i class="fas fa-user"></i> Full Name *</label>
+                                        <input type="text" class="form-control" id="fillProfileName" placeholder="Enter your full name" required>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label"><i class="fas fa-envelope"></i> Email *</label>
+                                        <input type="email" class="form-control" id="fillProfileEmail" placeholder="Enter your email" readonly style="background-color: #f0f0f0;">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label"><i class="fas fa-phone"></i> Phone Number *</label>
+                                        <input type="tel" class="form-control" id="fillProfilePhone" placeholder="Enter your phone number" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label"><i class="fas fa-birthday-cake"></i> Age *</label>
+                                        <input type="number" class="form-control" id="fillProfileAge" placeholder="Enter your age" min="13" max="120" required>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label"><i class="fas fa-venus-mars"></i> Gender *</label>
+                                        <select class="form-control" id="fillProfileGender" required>
+                                            <option value="">-- Select Gender --</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> <strong>Note:</strong> Fill in all fields to unlock membership and dashboard features
+                                </div>
+                                <button type="button" class="btn btn-warning w-100" onclick="saveFillProfile()">
+                                    <i class="fas fa-save"></i> Save Profile & Continue
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content (shows after profile is filled) -->
+            <div id="dashboardContentSection" style="display: none;">
+            
+            <!-- Payment Window Modal (Opens before dashboard) -->
+            <div class="modal fade" id="paymentWindowModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-md">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title"><i class="fas fa-credit-card"></i> Complete Your Payment</h5>
+                        </div>
+                        <div class="modal-body">
+                            <div id="paymentWindowContent">
+                                <!-- Payment form will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History Section -->
+            <div class="row mb-4" id="paymentHistorySection">
+                <div class="col-lg-12">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-history"></i> Payment History</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-striped" id="paymentHistoryTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Plan Name</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="paymentHistoryBody">
+                                    <!-- Payments will be populated here -->
+                                </tbody>
+                            </table>
+                            <div id="noPaymentMessage" class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> No payment history yet
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Edit Profile Button Section -->
+            <div class="row mb-4">
+                <div class="col-lg-12">
+                    <div class="text-end">
+                        <button class="btn btn-primary btn-sm" onclick="openEditProfileModal()">
+                            <i class="fas fa-edit"></i> Edit Profile
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+                            <hr>
+
+                            <!-- Membership Plan -->
+                            <div class="row mt-3">
+                                <div class="col-lg-12">
+                                    <h6 class="text-success mb-3"><i class="fas fa-star"></i> Active Membership</h6>
+                                    <div id="membershipCardContainer">
+                                        <div class="membership-card">
+                                            <div class="membership-header">
+                                                <h4 id="membershipPlanName">Select a Plan</h4>
+                                                <span class="badge bg-success" id="membershipStatus">Active</span>
+                                            </div>
+                                            <div class="membership-details">
+                                                <div class="detail-row">
+                                                    <span class="detail-label">Plan Type:</span>
+                                                    <span class="detail-value" id="membershipType">-</span>
+                                                </div>
+                                                <div class="detail-row">
+                                                    <span class="detail-label">Monthly Price:</span>
+                                                    <span class="detail-value" id="membershipPrice">-</span>
+                                                </div>
+                                                <div class="detail-row">
+                                                    <span class="detail-label">Enrollment Date:</span>
+                                                    <span class="detail-value" id="membershipEnrollDate">-</span>
+                                                </div>
+                                                <div class="detail-row">
+                                                    <span class="detail-label">Renewal Date:</span>
+                                                    <span class="detail-value" id="membershipRenewalDate">-</span>
+                                                </div>
+                                            </div>
+                                            <div class="membership-benefits mt-3">
+                                                <h6>Your Benefits:</h6>
+                                                <ul class="benefits-list" id="benefitsList">
+                                                    <li><i class="fas fa-check text-success"></i> Unlimited Workouts</li>
+                                                    <li><i class="fas fa-check text-success"></i> Personal Trainer Access</li>
+                                                    <li><i class="fas fa-check text-success"></i> Diet Plan Customization</li>
+                                                    <li><i class="fas fa-check text-success"></i> Progress Tracking</li>
+                                                </ul>
+                                            </div>
+                                            <button class="btn btn-outline-success mt-3 w-100" onclick="upgradeMembership()">
+                                                <i class="fas fa-arrow-up"></i> Upgrade Plan
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Membership Selection Section (on dashboard - no modal) -->
+            <div class="row mb-4" id="membershipSelectionSection" style="display: none;">
+                <div class="col-lg-12 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-crown"></i> Choose Your Membership Plan</h5>
+                            <p class="text-muted mb-0" style="font-size: 13px;">Select a plan that best suits your fitness goals</p>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="membershipPlansGridOnDashboard">
+                                <!-- Plans will be populated here by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Section (if not paid) -->
+            <div class="row mb-4" id="paymentSection" style="display: none;">
+                <div class="col-lg-12 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-wallet"></i> Complete Your Payment</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning alert-dismissible fade show">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Action Required!</strong> Your membership plan is pending payment. Complete the payment below to activate your plan.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-success mb-3"><i class="fas fa-receipt"></i> Payment Summary</h6>
+                                    <div class="profile-info">
+                                        <div class="info-row">
+                                            <span class="info-label">Plan Type:</span>
+                                            <span class="info-value" id="paymentPlanName">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Price per Month:</span>
+                                            <span class="info-value" id="paymentPrice">-</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Billing Cycle:</span>
+                                            <span class="info-value">Monthly</span>
+                                        </div>
+                                        <div class="info-row">
+                                            <span class="info-label">Total Amount:</span>
+                                            <span class="info-value" id="paymentTotal" style="font-size: 20px;">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-success mb-3"><i class="fas fa-credit-card"></i> Payment Method</h6>
+                                    <div class="profile-info">
+                                        <form id="dashboardPaymentForm">
+                                            <div class="mb-3">
+                                                <label class="form-label">Payment Method</label>
+                                                <select class="form-control" id="paymentMethod" required>
+                                                    <option value="">Select Payment Method</option>
+                                                    <option value="card">Credit/Debit Card</option>
+                                                    <option value="upi">UPI</option>
+                                                    <option value="netbanking">Net Banking</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Card Payment Form -->
+                                            <div id="cardPaymentDiv" style="display: none;">
+                                                <div class="mb-3">
+                                                    <label for="dashCardName" class="form-label">Cardholder Name</label>
+                                                    <input type="text" class="form-control" id="dashCardName" placeholder="Name on card">
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="dashCardNumber" class="form-label">Card Number</label>
+                                                    <input type="text" class="form-control" id="dashCardNumber" placeholder="1234 5678 9012 3456" maxlength="16">
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="dashCardExpiry" class="form-label">Expiry (MM/YY)</label>
+                                                        <input type="text" class="form-control" id="dashCardExpiry" placeholder="MM/YY" maxlength="5">
+                                                    </div>
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="dashCardCVC" class="form-label">CVV</label>
+                                                        <input type="text" class="form-control" id="dashCardCVC" placeholder="123" maxlength="3">
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- UPI Payment Form -->
+                                            <div id="upiPaymentDiv" style="display: none;">
+                                                <div class="mb-3">
+                                                    <label for="upiId" class="form-label">UPI ID</label>
+                                                    <input type="text" class="form-control" id="upiId" placeholder="yourname@upi">
+                                                </div>
+                                            </div>
+
+                                            <!-- Net Banking Form -->
+                                            <div id="netbankingPaymentDiv" style="display: none;">
+                                                <div class="mb-3">
+                                                    <label for="bankName" class="form-label">Select Bank</label>
+                                                    <select class="form-control" id="bankName">
+                                                        <option value="">Select your bank</option>
+                                                        <option value="hdfc">HDFC Bank</option>
+                                                        <option value="icici">ICICI Bank</option>
+                                                        <option value="axis">Axis Bank</option>
+                                                        <option value="sbi">State Bank of India</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="agreePaymentTerms" required>
+                                                <label class="form-check-label" for="agreePaymentTerms">
+                                                    I agree to the Terms & Conditions
+                                                </label>
+                                            </div>
+
+                                            <button type="button" class="btn btn-success w-100" onclick="processPaymentFromDashboard()">
+                                                <i class="fas fa-lock"></i> Make Payment
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon weight">
+                            <i class="fas fa-weight"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h6>Current Weight</h6>
+                            <p class="stat-value" id="currentWeight">75 kg</p>
+                            <small>Target: 70 kg</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon bmi">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h6>BMI</h6>
+                            <p class="stat-value" id="bmiValue">25.5</p>
+                            <small>In Range</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon calories">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h6>Calories Burned</h6>
+                            <p class="stat-value" id="caloriesBurned">450 kcal</p>
+                            <small>Today</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card">
+                        <div class="stat-icon workouts">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h6>Workouts Done</h6>
+                            <p class="stat-value" id="workoutsDone">12/30</p>
+                            <small>This Month</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Grid -->
+            <div class="row">
+                <!-- Membership Status Card -->
+                <div class="col-lg-4 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-crown"></i> Membership Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="membershipStatusPending" style="display: none;">
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-circle"></i> <strong>Membership Pending</strong>
+                                    <p class="mt-2">You haven't purchased a membership yet.</p>
+                                </div>
+                                <button class="btn btn-success w-100 mb-2" onclick="showMembershipPlan()">
+                                    <i class="fas fa-shopping-cart"></i> Buy Membership
+                                </button>
+                            </div>
+                            
+                            <div id="membershipStatusActive" style="display: none;">
+                                <div class="alert alert-success text-center">
+                                    <i class="fas fa-check-circle"></i> <strong>Active Membership</strong>
+                                </div>
+                                <div class="profile-info">
+                                    <div class="info-row">
+                                        <span class="info-label">Plan:</span>
+                                        <span class="info-value" id="membershipPlanName">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Price:</span>
+                                        <span class="info-value" id="membershipPlanPrice">-</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Status:</span>
+                                        <span class="badge bg-success">Active</span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-info w-100 mt-3" onclick="upgradeMembership()">
+                                    <i class="fas fa-arrow-up"></i> Upgrade Plan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weight Progress Chart -->
+                <div class="col-lg-8 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line"></i> Weight Progress</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="weightChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="col-lg-4 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-rocket"></i> Quick Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <button class="btn btn-success w-100 mb-2">
+                                <i class="fas fa-play"></i> Start Workout
+                            </button>
+                            <button class="btn btn-success w-100 mb-2">
+                                <i class="fas fa-utensils"></i> Log Meal
+                            </button>
+                            <button class="btn btn-success w-100 mb-2">
+                                <i class="fas fa-comment"></i> Chat with Trainer
+                            </button>
+                            <button class="btn btn-success w-100">
+                                <i class="fas fa-download"></i> Download Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Workout -->
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-calendar-day"></i> Today's Workout</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="workout-item">
+                                <div class="workout-icon">
+                                    <i class="fas fa-dumbbell"></i>
+                                </div>
+                                <div class="workout-details">
+                                    <h6>Chest & Triceps</h6>
+                                    <p>Intermediate Level • 45 minutes</p>
+                                    <small>6 exercises planned</small>
+                                </div>
+                                <button class="btn btn-sm btn-success">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+
+                            <div class="workout-item">
+                                <div class="workout-icon">
+                                    <i class="fas fa-running"></i>
+                                </div>
+                                <div class="workout-details">
+                                    <h6>Cardio Session</h6>
+                                    <p>30 minutes • Burns 350 kcal</p>
+                                    <small>Completed ✓</small>
+                                </div>
+                                <div class="badge bg-success">Done</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Diet Plan -->
+                <div class="col-lg-6 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-utensils"></i> Today's Meals</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="meal-item">
+                                <span class="meal-type">🌅 Breakfast</span>
+                                <span class="meal-cal">450 kcal</span>
+                            </div>
+                            <div class="meal-item">
+                                <span class="meal-type">🥗 Lunch</span>
+                                <span class="meal-cal">650 kcal</span>
+                            </div>
+                            <div class="meal-item">
+                                <span class="meal-type">☕ Snack</span>
+                                <span class="meal-cal">200 kcal</span>
+                            </div>
+                            <div class="meal-item">
+                                <span class="meal-type">🍽️ Dinner</span>
+                                <span class="meal-cal">600 kcal</span>
+                            </div>
+                            <hr>
+                            <div class="meal-item total">
+                                <span>Total Calories</span>
+                                <span>1900 / 2200 kcal</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Recommendations -->
+            <div class="row">
+                <div class="col-lg-12 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-robot"></i> AI Fitness Insights</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="ai-insight">
+                                <div class="insight-icon success">
+                                    <i class="fas fa-thumbs-up"></i>
+                                </div>
+                                <div class="insight-content">
+                                    <h6>Great Progress!</h6>
+                                    <p>You're on track to lose 2kg this month. Keep up with your workout routine and maintain your diet.</p>
+                                </div>
+                            </div>
+                            <div class="ai-insight">
+                                <div class="insight-icon warning">
+                                    <i class="fas fa-lightbulb"></i>
+                                </div>
+                                <div class="insight-content">
+                                    <h6>Suggestion: Increase Protein Intake</h6>
+                                    <p>Your current protein intake is low. Consume 150g protein daily to support muscle recovery.</p>
+                                </div>
+                            </div>
+                            <div class="ai-insight">
+                                <div class="insight-icon info">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="insight-content">
+                                    <h6>Upcoming Milestone</h6>
+                                    <p>You're 5kg away from your target weight of 70kg. 4 more weeks of consistent effort!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Membership & Billing -->
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-crown"></i> Your Membership</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="membership-info">
+                                <p><strong>Plan:</strong> <span id="membershipPlan">Professional</span></p>
+                                <p><strong>Valid Until:</strong> <span id="membershipEnd">March 18, 2027</span></p>
+                                <p><strong>Status:</strong> <span class="badge bg-success">Active</span></p>
+                                <p><strong>Amount:</strong> ₹1999/month</p>
+                            </div>
+                            <button class="btn btn-success w-100">
+                                <i class="fas fa-credit-card"></i> Renew Membership
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment History -->
+                <div class="col-md-6 mb-4">
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-history"></i> Recent Payments</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="payment-item">
+                                <span>Professional Plan</span>
+                                <span class="text-success">₹1999</span>
+                                <small>Paid on Mar 18, 2026</small>
+                            </div>
+                            <div class="payment-item">
+                                <span>Previous Month</span>
+                                <span class="text-success">₹1999</span>
+                                <small>Paid on Feb 18, 2026</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" style="position: fixed; top: 80px; right: 20px; z-index: 1000; width: 300px;"></div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editProfileLabel"><i class="fas fa-edit"></i> Edit Your Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProfileForm">
+                        <div class="row">
+                            <!-- Personal Information -->
+                            <div class="col-md-6 mb-3">
+                                <label for="editFullName" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="editFullName" placeholder="Enter your full name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editEmail" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="editEmail" placeholder="Enter your email" disabled>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editPhone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="editPhone" placeholder="Enter your phone number">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editAge" class="form-label">Age</label>
+                                <input type="number" class="form-control" id="editAge" min="13" max="120" placeholder="Enter your age">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editGender" class="form-label">Gender</label>
+                                <select class="form-control" id="editGender">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <!-- Fitness Profile -->
+                            <div class="col-md-6 mb-3">
+                                <label for="editHeight" class="form-label">Height (cm)</label>
+                                <input type="number" class="form-control" id="editHeight" min="100" max="250" placeholder="Enter your height in cm">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editWeight" class="form-label">Weight (kg)</label>
+                                <input type="number" class="form-control" id="editWeight" min="20" max="300" step="0.1" placeholder="Enter your weight in kg">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editGoal" class="form-label">Fitness Goal</label>
+                                <select class="form-control" id="editGoal">
+                                    <option value="">Select Goal</option>
+                                    <option value="General Fitness">General Fitness</option>
+                                    <option value="Weight Loss">Weight Loss</option>
+                                    <option value="Muscle Gain">Muscle Gain</option>
+                                    <option value="Improve Stamina">Improve Stamina</option>
+                                    <option value="Flexibility">Flexibility</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="editExperience" class="form-label">Fitness Experience</label>
+                                <select class="form-control" id="editExperience">
+                                    <option value="">Select Level</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="alert alert-info">
+                            <small><i class="fas fa-info-circle"></i> Fields marked with <span class="text-danger">*</span> are mandatory</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="saveProfileChanges()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fitness Information Modal (First Login) -->
+    <div class="modal fade" id="fitnessinfoModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-dumbbell"></i> Complete Your Fitness Profile</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Help us personalize your fitness journey by providing these details:</p>
+                    <form id="fitnessInfoForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><i class="fas fa-birthday-cake"></i> Age</label>
+                                <input type="number" class="form-control" id="fitnessAge" min="13" max="120" placeholder="Enter your age" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><i class="fas fa-mars"></i> Gender</label>
+                                <select class="form-control" id="fitnessGender" required>
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><i class="fas fa-ruler-vertical"></i> Height (cm)</label>
+                                <input type="number" class="form-control" id="fitnessHeight" min="100" max="250" placeholder="e.g. 180" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><i class="fas fa-weight"></i> Weight (kg)</label>
+                                <input type="number" class="form-control" id="fitnessWeight" min="20" max="300" step="0.1" placeholder="e.g. 75" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><i class="fas fa-bullseye"></i> Fitness Goal</label>
+                                <select class="form-control" id="fitnessGoal" required>
+                                    <option value="">Select Your Goal</option>
+                                    <option value="Weight Loss">Weight Loss</option>
+                                    <option value="Muscle Gain">Muscle Gain</option>
+                                    <option value="General Fitness">General Fitness</option>
+                                    <option value="Improve Stamina">Improve Stamina</option>
+                                    <option value="Flexibility">Flexibility</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><i class="fas fa-book"></i> Experience Level</label>
+                                <select class="form-control" id="fitnessExperience" required>
+                                    <option value="">Select Your Level</option>
+                                    <option value="Beginner">Beginner</option>
+                                    <option value="Intermediate">Intermediate</option>
+                                    <option value="Advanced">Advanced</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                            <small><i class="fas fa-info-circle text-info"></i> This information helps us create personalized workout and diet plans for you.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success btn-lg" onclick="saveFitnessInfo()">
+                        <i class="fas fa-save"></i> Save & Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+        </div> <!-- Close dashboardContentSection -->
+    </div>
+
+    <!-- Membership Plans Modal -->
+    <div class="modal fade" id="membershipPlansModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-crown"></i> Choose Your Membership Plan</h5>
+                </div>
+                <div class="modal-body">
+                    <div class="row" id="membershipPlansContainer">
+                        <!-- Plans generated by JavaScript -->
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle"></i> <strong>Note:</strong> You can upgrade to a higher plan anytime. Monthly billing will begin after purchase.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="../assets/js/supabase-config.js"></script>
+    <script src="../assets/js/dashboard.js"></script>
+    
+    <!-- Sidebar Navigation Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Handle sidebar menu clicks
+            const sidebarLinks = document.querySelectorAll('.sidebar-menu a');
+            
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    const href = link.getAttribute('href');
+                    const section = href.substring(1); // Remove '#'
+                    
+                    // Remove active class from all menu items
+                    document.querySelectorAll('.sidebar-menu li').forEach(li => {
+                        li.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked menu item
+                    link.closest('li').classList.add('active');
+                    
+                    // Handle different sections
+                    handleMenuNavigation(section);
+                });
+            });
+        });
+        
+        function handleMenuNavigation(section) {
+            const container = document.querySelector('.dashboard-container');
+            const title = document.querySelector('.top-bar-left h2');
+            
+            const contentMap = {
+                'dashboard': {
+                    title: 'Welcome Back! 💪',
+                    content: 'dashboard'
+                },
+                'workout': {
+                    title: 'Workout Plans 🏋️',
+                    get content() {
+                        return getAdminAssignedWorkoutContent();
+                    }
+                },
+                'diet': {
+                    title: 'Diet Plans 🍽️',
+                    get content() {
+                        return getAdminAssignedDietContent();
+                    }
+                },
+                'progress': {
+                    title: 'Progress Tracking 📈',
+                    content: `
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-heartbeat"></i> Your Progress</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <h6>Weight Lost</h6>
+                                            <p class="text-success"><strong>2.5 kg</strong></p>
+                                            <small>This Month</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <h6>Workouts Done</h6>
+                                            <p class="text-success"><strong>12/30</strong></p>
+                                            <small>40% Completed</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <h6>Calorie Burnt</h6>
+                                            <p class="text-success"><strong>5,400 kcal</strong></p>
+                                            <small>This Month</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-light rounded">
+                                            <h6>Days Streak</h6>
+                                            <p class="text-success"><strong>7 Days</strong></p>
+                                            <small>Keep Going!</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                'trainers': {
+                    title: 'My Trainers 👨‍🏫',
+                    get content() {
+                        return getAdminAssignedTrainerContent();
+                    }
+                },
+                'billing': {
+                    title: 'Billing & Payments 💳',
+                    content: `
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-credit-card"></i> Billing Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <h6 class="text-success mb-2">Current Plan</h6>
+                                        <p><strong>Professional Plan</strong></p>
+                                        <p class="text-muted">₹1,999/month</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-success mb-2">Next Renewal</h6>
+                                        <p><strong>March 20, 2027</strong></p>
+                                        <button class="btn btn-sm btn-success">Auto-Renewal: ON</button>
+                                    </div>
+                                </div>
+                                <hr>
+                                <h6 class="text-success mb-2">Recent Payments</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td>Professional Plan</td>
+                                        <td class="text-right">₹1,999</td>
+                                        <td><small>Mar 20, 2026</small></td>
+                                        <td><span class="badge bg-success">Paid</span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    `
+                },
+                'settings': {
+                    title: 'Settings ⚙️',
+                    content: `
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-cog"></i> Account Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <h6>Profile Settings</h6>
+                                    <button class="btn btn-sm btn-outline-success mb-2"><i class="fas fa-edit"></i> Edit Profile</button>
+                                    <button class="btn btn-sm btn-outline-success mb-2"><i class="fas fa-key"></i> Change Password</button>
+                                </div>
+                                <hr>
+                                <div class="mb-3">
+                                    <h6>Preferences</h6>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="notifyEmail" checked>
+                                        <label class="form-check-label" for="notifyEmail">
+                                            Email Notifications
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="notifyPush" checked>
+                                        <label class="form-check-label" for="notifyPush">
+                                            Push Notifications
+                                        </label>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div>
+                                    <button class="btn btn-danger w-100"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                }
+            };
+            
+            const page = contentMap[section] || contentMap['dashboard'];
+            
+            if (section === 'dashboard') {
+                // Reload the full page to show dashboard
+                location.reload();
+            } else {
+                // Update title
+                title.innerHTML = `<span id="userName">User</span>! ${page.title.substring(page.title.indexOf(' '))}`;
+                
+                // Replace container content - page.content is now a getter that returns HTML
+                if (page.content && page.content !== 'dashboard') {
+                    container.innerHTML = page.content;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

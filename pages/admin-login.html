@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Fitness Hub</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="../assets/css/auth-style.css" rel="stylesheet">
+    <style>
+        .admin-login-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .admin-login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .admin-login-card h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .admin-login-card p {
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-control {
+            border: 2px solid #eee;
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 14px;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn-admin-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        
+        .btn-admin-login:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            color: white;
+        }
+        
+        .admin-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-login-container">
+        <div class="admin-login-card">
+            <div class="text-center">
+                <div class="admin-badge">
+                    <i class="fas fa-shield-alt"></i> ADMIN PANEL
+                </div>
+                <h2><i class="fas fa-user-lock"></i> Admin Login</h2>
+                <p>Access the management dashboard</p>
+            </div>
+
+            <form id="adminLoginForm">
+                <div class="mb-3">
+                    <label for="adminUsername" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="adminUsername" placeholder="Enter admin username" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="adminPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="adminPassword" placeholder="Enter admin password" required>
+                </div>
+
+                <button type="button" class="btn btn-admin-login w-100 text-white" onclick="adminLogin()">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+            </form>
+
+            <div class="alert alert-info mt-3">
+                <small><i class="fas fa-info-circle"></i> Default: admin / admin123</small>
+            </div>
+
+            <hr>
+
+            <div class="text-center">
+                <a href="../index.html" class="text-decoration-none text-muted">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function adminLogin() {
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+
+            // Simple admin validation (in production, this should be verified from backend)
+            if (username === 'admin' && password === 'admin123') {
+                localStorage.setItem('fitnesshub_admin_session', JSON.stringify({
+                    username: username,
+                    loginTime: new Date().toISOString(),
+                }));
+                window.location.href = 'admin-dashboard.html';
+            } else {
+                alert('❌ Invalid credentials! Try: admin / admin123');
+            }
+        }
+
+        // Press Enter to login
+        document.getElementById('adminLoginForm').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                adminLogin();
+            }
+        });
+    </script>
+</body>
+</html>

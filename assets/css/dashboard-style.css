@@ -1,0 +1,697 @@
+:root {
+    --primary-dark: #0a0e27;
+    --secondary-dark: #1a1f3a;
+    --tertiary-dark: #262d4a;
+    --neon-green: #00ff41;
+    --neon-green-hover: #00cc34;
+    --text-light: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --success: #28a745;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--primary-dark);
+    color: var(--text-light);
+    display: flex;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
+    height: 100vh;
+    padding: 0;
+    position: fixed;
+    left: 0;
+    top: 0;
+    overflow-y: auto;
+    border-right: 2px solid var(--neon-green);
+}
+
+.sidebar-header {
+    padding: 25px;
+    border-bottom: 2px solid rgba(0, 255, 65, 0.2);
+}
+
+.sidebar-logo {
+    color: var(--neon-green);
+    text-decoration: none;
+    font-size: 20px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sidebar-logo i {
+    font-size: 28px;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 20px 0;
+}
+
+.sidebar-menu li {
+    margin: 0;
+}
+
+.sidebar-menu li a {
+    display: block;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 15px 25px;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+    font-weight: 500;
+}
+
+.sidebar-menu li a i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-menu li.active a,
+.sidebar-menu li a:hover {
+    color: var(--neon-green);
+    background-color: rgba(0, 255, 65, 0.1);
+    border-left-color: var(--neon-green);
+}
+
+.sidebar-footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    padding: 20px;
+    border-top: 2px solid rgba(0, 255, 65, 0.2);
+}
+
+.btn-danger {
+    background-color: #ff4444 !important;
+    border: none !important;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.btn-danger:hover {
+    background-color: #cc0000 !important;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 280px;
+    width: calc(100% - 280px);
+    min-height: 100vh;
+    background-color: var(--primary-dark);
+}
+
+/* Top Bar */
+.top-bar {
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(0, 255, 65, 0.2);
+    margin-bottom: 30px;
+}
+
+.top-bar-left h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-light);
+}
+
+.top-bar-left h2 span {
+    color: var(--neon-green);
+}
+
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.notification-bell {
+    position: relative;
+    font-size: 24px;
+    color: var(--neon-green);
+    cursor: pointer;
+}
+
+.notification-bell .badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: #ff4444;
+    font-size: 10px;
+    padding: 4px 6px;
+}
+
+.user-profile img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: 2px solid var(--neon-green);
+    cursor: pointer;
+}
+
+/* Dashboard Container */
+.dashboard-container {
+    padding: 0 30px 30px;
+}
+
+/* Stat Cards */
+.stat-card {
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
+    padding: 25px;
+    border-radius: 15px;
+    border: 2px solid rgba(0, 255, 65, 0.2);
+    display: flex;
+    gap: 20px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.stat-card:hover {
+    border-color: var(--neon-green);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 255, 65, 0.2);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+}
+
+.stat-icon.weight {
+    background-color: rgba(0, 150, 255, 0.2);
+    color: #0096ff;
+}
+
+.stat-icon.bmi {
+    background-color: rgba(0, 255, 65, 0.2);
+    color: var(--neon-green);
+}
+
+.stat-icon.calories {
+    background-color: rgba(255, 150, 0, 0.2);
+    color: #ff9600;
+}
+
+.stat-icon.workouts {
+    background-color: rgba(255, 65, 150, 0.2);
+    color: #ff4196;
+}
+
+.stat-content h6 {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 26px;
+    font-weight: 900;
+    margin-bottom: 5px;
+}
+
+.stat-content small {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+/* Dashboard Cards */
+.dashboard-card {
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
+    border-radius: 15px;
+    border: 2px solid rgba(0, 255, 65, 0.2);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+    border-color: var(--neon-green);
+    box-shadow: 0 15px 40px rgba(0, 255, 65, 0.15);
+}
+
+.card-header {
+    padding: 20px 25px;
+    border-bottom: 2px solid rgba(0, 255, 65, 0.1);
+}
+
+.card-header h5 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--neon-green);
+    margin: 0;
+}
+
+.card-header i {
+    margin-right: 10px;
+}
+
+.card-body {
+    padding: 25px;
+}
+
+/* Workout Items */
+.workout-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background-color: rgba(0, 255, 65, 0.05);
+    border-radius: 10px;
+    margin-bottom: 15px;
+    align-items: center;
+    border-left: 4px solid var(--neon-green);
+}
+
+.workout-item:last-child {
+    margin-bottom: 0;
+}
+
+.workout-icon {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(0, 255, 65, 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--neon-green);
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.workout-details {
+    flex-grow: 1;
+}
+
+.workout-details h6 {
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: var(--text-light);
+}
+
+.workout-details p {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.workout-details small {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.btn-success {
+    background-color: var(--neon-green) !important;
+    color: var(--primary-dark) !important;
+    border: none !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: var(--neon-green-hover) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 65, 0.4);
+}
+
+/* Meal Items */
+.meal-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+    align-items: center;
+}
+
+.meal-item:last-child {
+    border-bottom: none;
+}
+
+.meal-item.total {
+    font-weight: 700;
+    color: var(--neon-green);
+    padding: 15px 0;
+    border-top: 2px solid rgba(0, 255, 65, 0.2);
+}
+
+.meal-type {
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.meal-cal {
+    color: var(--neon-green);
+    font-weight: 600;
+}
+
+/* AI Insights */
+.ai-insight {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background-color: rgba(0, 255, 65, 0.05);
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border-left: 4px solid var(--neon-green);
+}
+
+.ai-insight:last-child {
+    margin-bottom: 0;
+}
+
+.insight-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    font-weight: 700;
+}
+
+.insight-icon.success {
+    background-color: rgba(0, 255, 65, 0.2);
+    color: var(--neon-green);
+}
+
+.insight-icon.warning {
+    background-color: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+}
+
+.insight-icon.info {
+    background-color: rgba(0, 150, 255, 0.2);
+    color: #0096ff;
+}
+
+.insight-content h6 {
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text-light);
+}
+
+.insight-content p {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Membership Info */
+.membership-info {
+    background-color: rgba(0, 255, 65, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0, 255, 65, 0.2);
+}
+
+.membership-info p {
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.membership-info strong {
+    color: var(--neon-green);
+}
+
+.badge {
+    padding: 6px 12px !important;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Payment History */
+.payment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+}
+
+.payment-item:last-child {
+    border-bottom: none;
+}
+
+.payment-item small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+/* Chart Styling */
+canvas {
+    max-width: 100%;
+}
+
+/* Profile & Membership Section */
+.profile-info {
+    background-color: rgba(0, 255, 65, 0.05);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 255, 65, 0.2);
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+    font-size: 14px;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.info-value {
+    color: var(--neon-green);
+    font-weight: 700;
+}
+
+/* Membership Card */
+.membership-card {
+    background: linear-gradient(135deg, rgba(0, 255, 65, 0.05), rgba(0, 255, 65, 0.02));
+    border: 2px solid var(--neon-green);
+    border-radius: 15px;
+    padding: 25px;
+    position: relative;
+    overflow: hidden;
+}
+
+.membership-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--neon-green), transparent);
+}
+
+.membership-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+}
+
+.membership-header h4 {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--neon-green);
+    margin: 0;
+}
+
+.membership-details {
+    margin-bottom: 20px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+    font-size: 14px;
+}
+
+.detail-row:last-of-type {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.detail-value {
+    color: var(--text-light);
+    font-weight: 700;
+}
+
+.membership-benefits {
+    background-color: rgba(0, 255, 65, 0.08);
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 4px solid var(--neon-green);
+}
+
+.membership-benefits h6 {
+    color: var(--neon-green);
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.benefits-list li {
+    color: var(--text-light);
+    padding: 8px 0;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.benefits-list i {
+    font-size: 11px;
+    min-width: 15px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 200px;
+    }
+
+    .main-content {
+        margin-left: 200px;
+        width: calc(100% - 200px);
+    }
+
+    .top-bar {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .top-bar-left h2 {
+        font-size: 22px;
+    }
+
+    .dashboard-container {
+        padding: 0 15px 15px;
+    }
+
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stat-icon {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .sidebar {
+        width: 60px;
+        padding: 0;
+    }
+
+    .sidebar-header {
+        padding: 15px;
+    }
+
+    .sidebar-logo {
+        font-size: 14px;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .sidebar-logo i {
+        font-size: 20px;
+    }
+
+    .sidebar-menu li a {
+        padding: 15px 10px;
+        text-align: center;
+        font-size: 0;
+    }
+
+    .sidebar-menu li a i {
+        font-size: 18px;
+        margin: 0;
+    }
+
+    .main-content {
+        margin-left: 60px;
+        width: calc(100% - 60px);
+    }
+
+    .top-bar {
+        padding: 15px;
+    }
+
+    .top-bar-left h2 {
+        font-size: 18px;
+    }
+
+    .dashboard-container {
+        padding: 0 10px 10px;
+    }
+
+    .col-md-3,
+    .col-md-6,
+    .col-lg-4,
+    .col-lg-6,
+    .col-lg-8,
+    .col-lg-12 {
+        min-width: 100%;
+    }
+}

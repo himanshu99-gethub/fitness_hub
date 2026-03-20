@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Hub - Your Ultimate Gym Management System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-dumbbell text-success"></i> <strong>Fitness Hub</strong>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#plans">Plans</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#trainers">Trainers</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/login.html">Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/admin-login.html" title="Admin Panel"><i class="fas fa-shield-alt"></i></a></li>
+                    <li class="nav-item"><a class="nav-link btn-register" href="pages/register.html">Sign Up</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container h-100 d-flex align-items-center">
+            <div class="row w-100">
+                <div class="col-lg-6 d-flex flex-column justify-content-center">
+                    <h1 class="hero-title">Transform Your Body, Transform Your Life</h1>
+                    <p class="hero-subtitle">Join Fitness Hub and achieve your fitness goals with personalized workout plans, diet strategies, and expert trainers</p>
+                    <div class="hero-buttons">
+                        <a href="pages/register.html" class="btn btn-success btn-lg">Get Started Now</a>
+                        <a href="#plans" class="btn btn-outline-success btn-lg ms-3">View Plans</a>
+                    </div>
+                </div>
+                <div class="col-lg-6 d-none d-lg-flex justify-content-center">
+                    <div class="hero-image-box">
+                        <i class="fas fa-person-hiking"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Why Choose Fitness Hub?</h2>
+                <p>Everything you need to achieve your fitness goals</p>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h5>Progress Tracking</h5>
+                        <p>Monitor your weight, BMI, and fitness progress with interactive charts</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-dumbbell"></i>
+                        </div>
+                        <h5>Workout Plans</h5>
+                        <p>Customized workout routines for Beginner, Intermediate, and Advanced users</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-apple-alt"></i>
+                        </div>
+                        <h5>Diet Plans</h5>
+                        <p>Personalized nutrition plans for weight loss and muscle gain</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <h5>Expert Trainers</h5>
+                        <p>Get guidance from certified fitness professionals</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h5>Smart Reminders</h5>
+                        <p>Get email notifications for workouts, fee payments, and milestones</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h5>AI Assistant</h5>
+                        <p>AI-powered workout suggestions based on your goals and fitness level</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Membership Plans Section -->
+    <section class="plans-section" id="plans">
+        <div class="container">
+            <div class="section-header">
+                <h2>Choose Your Perfect Plan</h2>
+                <p>Flexible pricing to fit your budget and goals</p>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="plan-card">
+                        <div class="plan-badge">Basic</div>
+                        <h5 class="plan-name">Starter Pack</h5>
+                        <div class="plan-price">
+                            <span class="currency">₹</span>
+                            <span class="amount">999</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li><i class="fas fa-check"></i> Gym access</li>
+                            <li><i class="fas fa-check"></i> Basic workout plan</li>
+                            <li><i class="fas fa-check"></i> progress tracking</li>
+                            <li><i class="fas fa-times"></i> Personal trainer</li>
+                            <li><i class="fas fa-times"></i> Diet plan</li>
+                        </ul>
+                        <button class="btn btn-outline-success w-100" onclick="goToRegister()">Choose Plan</button>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="plan-card popular">
+                        <div class="plan-badge popular-badge">Popular</div>
+                        <h5 class="plan-name">Professional</h5>
+                        <div class="plan-price">
+                            <span class="currency">₹</span>
+                            <span class="amount">1999</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li><i class="fas fa-check"></i> Gym access</li>
+                            <li><i class="fas fa-check"></i> Advanced workout plan</li>
+                            <li><i class="fas fa-check"></i> Progress tracking</li>
+                            <li><i class="fas fa-check"></i> 2x trainer sessions</li>
+                            <li><i class="fas fa-check"></i> Personalized diet plan</li>
+                        </ul>
+                        <button class="btn btn-success w-100" onclick="goToRegister()">Choose Plan</button>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="plan-card">
+                        <div class="plan-badge">Premium</div>
+                        <h5 class="plan-name">Elite Plus</h5>
+                        <div class="plan-price">
+                            <span class="currency">₹</span>
+                            <span class="amount">2999</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li><i class="fas fa-check"></i> Unlimited gym access</li>
+                            <li><i class="fas fa-check"></i> Custom workout plan</li>
+                            <li><i class="fas fa-check"></i> Advanced tracking</li>
+                            <li><i class="fas fa-check"></i> Unlimited trainer sessions</li>
+                            <li><i class="fas fa-check"></i> Premium diet plan</li>
+                        </ul>
+                        <button class="btn btn-outline-success w-100" onclick="goToRegister()">Choose Plan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trainers Section -->
+    <section class="trainers-section" id="trainers">
+        <div class="container">
+            <div class="section-header">
+                <h2>Meet Our Expert Trainers</h2>
+                <p>Certified professionals ready to guide your fitness journey</p>
+            </div>
+            <div class="row">
+                <div class="col-md-3 mb-4">
+                    <div class="trainer-card">
+                        <div class="trainer-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <h5>Rajesh Kumar</h5>
+                        <p class="trainer-specialty">Strength Training</p>
+                        <p class="trainer-bio">10+ years experience in bodybuilding and strength training</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="trainer-card">
+                        <div class="trainer-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <h5>Priya Singh</h5>
+                        <p class="trainer-specialty">Cardio & Weight Loss</p>
+                        <p class="trainer-bio">Expert in high-intensity training and fitness transformation</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="trainer-card">
+                        <div class="trainer-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <h5>Arjun Patel</h5>
+                        <p class="trainer-specialty">Nutrition & Wellness</p>
+                        <p class="trainer-bio">Certified nutritionist and wellness coach</p>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <div class="trainer-card">
+                        <div class="trainer-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <h5>Meera Sharma</h5>
+                        <p class="trainer-specialty">Yoga & Flexibility</p>
+                        <p class="trainer-bio">Specialized in yoga, flexibility training, and injury recovery</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BMI Calculator Section -->
+    <section class="bmi-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="bmi-calculator">
+                        <h3>Quick BMI Calculator</h3>
+                        <p>Check your Body Mass Index instantly</p>
+                        <form id="bmiForm">
+                            <div class="mb-3">
+                                <label for="height" class="form-label">Height (cm)</label>
+                                <input type="number" class="form-control" id="height" placeholder="Enter your height" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="weight" class="form-label">Weight (kg)</label>
+                                <input type="number" class="form-control" id="weight" placeholder="Enter your weight" required>
+                            </div>
+                            <button type="button" class="btn btn-success w-100" onclick="calculateBMI()">Calculate BMI</button>
+                        </form>
+                        <div id="bmiResult" class="bmi-result"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container text-center">
+            <h2>Ready to Start Your Fitness Journey?</h2>
+            <p>Join thousands of members who have transformed their lives</p>
+            <a href="pages/register.html" class="btn btn-success btn-lg">Sign Up Now - It's Free!</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h6>About Fitness Hub</h6>
+                    <p>Your all-in-one gym management and fitness tracking platform</p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h6>Quick Links</h6>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="#plans">Plans</a></li>
+                        <li><a href="#trainers">Trainers</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h6>Contact Us</h6>
+                    <p>Email: support@fitnesshub.com<br>Phone: +91 98765 43210</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Fitness Hub. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/visual-db-config.js"></script>
+    <script src="assets/js/script.js"></script>
+</body>
+</html>

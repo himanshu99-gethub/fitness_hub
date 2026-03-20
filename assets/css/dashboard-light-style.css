@@ -1,0 +1,881 @@
+/* ============================================
+   LIGHT THEME FOR DASHBOARD
+   ============================================ */
+
+:root {
+    --primary-light: #ffffff;
+    --secondary-light: #f5f5f5;
+    --tertiary-light: #eeeeee;
+    --neon-green: #00a86b;
+    --neon-green-hover: #008c5a;
+    --text-dark: #1a1a1a;
+    --text-muted: #666666;
+    --border-light: #dddddd;
+    --shadow-light: rgba(0, 0, 0, 0.1);
+    --success: #28a745;
+    --warning: #ff9600;
+    --danger: #f44336;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--secondary-light);
+    color: var(--text-dark);
+    min-height: 100vh;
+}
+
+/* ============================================
+   SIDEBAR STYLING
+   ============================================ */
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 280px;
+    height: 100vh;
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--tertiary-light) 100%);
+    border-right: 2px solid var(--neon-green);
+    padding: 20px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 2px 0 10px var(--shadow-light);
+}
+
+.sidebar-header {
+    margin-bottom: 30px;
+    text-align: center;
+    border-bottom: 2px solid var(--neon-green);
+    padding-bottom: 15px;
+}
+
+.sidebar-logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--neon-green);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.sidebar-logo:hover {
+    color: var(--neon-green-hover);
+}
+
+.sidebar-logo i {
+    font-size: 24px;
+}
+
+.sidebar-menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sidebar-menu li {
+    margin-bottom: 10px;
+}
+
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 15px;
+    color: var(--text-dark);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.sidebar-menu a:hover {
+    background-color: var(--tertiary-light);
+    color: var(--neon-green);
+    padding-left: 20px;
+}
+
+.sidebar-menu li.active a {
+    background-color: var(--neon-green);
+    color: white;
+    border-left: 4px solid var(--neon-green-hover);
+}
+
+.sidebar-menu i {
+    font-size: 18px;
+    width: 18px;
+}
+
+.sidebar-footer {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+}
+
+.sidebar-footer .btn {
+    background-color: var(--danger);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 10px 15px;
+    font-size: 14px;
+}
+
+.sidebar-footer .btn:hover {
+    background-color: #d32f2f;
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+
+.main-content {
+    margin-left: 280px;
+    padding: 0;
+}
+
+/* ============================================
+   TOP BAR
+   ============================================ */
+
+.top-bar {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--tertiary-light) 100%);
+    border-bottom: 2px solid var(--border-light);
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    position: sticky;
+    top: 0;
+    z-index: 500;
+}
+
+.top-bar-left h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.top-bar-left h2 span {
+    color: var(--neon-green);
+    font-weight: 900;
+}
+
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.notification-bell {
+    position: relative;
+    font-size: 20px;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.notification-bell:hover {
+    color: var(--neon-green);
+}
+
+.notification-bell .badge {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    background-color: var(--danger);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.user-profile img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--neon-green);
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.user-profile img:hover {
+    transform: scale(1.1);
+}
+
+/* ============================================
+   DASHBOARD CONTENT
+   ============================================ */
+
+.dashboard-container {
+    padding: 30px;
+}
+
+/* ============================================
+   STAT CARDS
+   ============================================ */
+
+.stat-card {
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    box-shadow: 0 4px 16px var(--shadow-light);
+    transform: translateY(-2px);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.stat-icon.weight {
+    background-color: rgba(0, 168, 107, 0.1);
+    color: var(--neon-green);
+}
+
+.stat-icon.bmi {
+    background-color: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+.stat-icon.calories {
+    background-color: rgba(255, 152, 0, 0.1);
+    color: var(--warning);
+}
+
+.stat-icon.workouts {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--danger);
+}
+
+.stat-content h6 {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 5px 0;
+}
+
+.stat-content small {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* ============================================
+   DASHBOARD CARDS
+   ============================================ */
+
+.dashboard-card {
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.dashboard-card:hover {
+    box-shadow: 0 4px 16px var(--shadow-light);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--tertiary-light) 0%, var(--secondary-light) 100%);
+    border-bottom: 2px solid var(--border-light);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header h5 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.card-header i {
+    color: var(--neon-green);
+    margin-right: 8px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.btn {
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 10px 16px;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-success {
+    background-color: var(--neon-green);
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: var(--neon-green-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 168, 107, 0.3);
+}
+
+.btn-success:active {
+    transform: translateY(0);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.btn-danger {
+    background-color: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+/* ============================================
+   WORKOUT & MEAL ITEMS
+   ============================================ */
+
+.workout-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+}
+
+.workout-item:hover {
+    background-color: var(--secondary-light);
+    border-color: var(--neon-green);
+}
+
+.workout-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: rgba(0, 168, 107, 0.1);
+    color: var(--neon-green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.workout-details {
+    flex: 1;
+}
+
+.workout-details h6 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.workout-details p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 4px 0;
+}
+
+.workout-details small {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: block;
+}
+
+/* ============================================
+   MEAL ITEMS
+   ============================================ */
+
+.meal-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.meal-item:last-child {
+    border-bottom: none;
+}
+
+.meal-item.total {
+    border-top: 2px solid var(--neon-green);
+    padding-top: 15px;
+    margin-top: 15px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.meal-type {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.meal-cal {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--neon-green);
+}
+
+/* ============================================
+   AI INSIGHTS
+   ============================================ */
+
+.ai-insight {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    border-left: 4px solid;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    background-color: var(--secondary-light);
+}
+
+.insight-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.insight-icon.success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.insight-icon.warning {
+    background-color: rgba(255, 152, 0, 0.1);
+    color: var(--warning);
+    border-color: var(--warning);
+}
+
+.insight-icon.info {
+    background-color: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.ai-insight.success {
+    border-left-color: var(--success);
+}
+
+.ai-insight.warning {
+    border-left-color: var(--warning);
+}
+
+.ai-insight.info {
+    border-left-color: #007bff;
+}
+
+.insight-content h6 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.insight-content p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+}
+
+/* ============================================
+   MEMBERSHIP & BILLING
+   ============================================ */
+
+.membership-section {
+    background: linear-gradient(135deg, var(--neon-green), var(--neon-green-hover));
+    color: white;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.membership-section h6 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.9;
+}
+
+.membership-section .plan-name {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+.membership-section .plan-validity {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.payment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 14px;
+}
+
+.payment-item:last-child {
+    border-bottom: none;
+}
+
+.payment-amount {
+    font-weight: 700;
+    color: var(--neon-green);
+}
+
+/* ============================================
+   CHARTS
+   ============================================ */
+
+#weightChart {
+    max-height: 300px;
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.badge.bg-success {
+    background-color: var(--success);
+    color: white;
+}
+
+/* ============================================
+   PROFILE & MEMBERSHIP STYLES (LIGHT)
+   ============================================ */
+
+.profile-info {
+    background-color: rgba(0, 168, 107, 0.05);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 168, 107, 0.3);
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0, 168, 107, 0.15);
+    font-size: 14px;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.info-value {
+    color: var(--neon-green);
+    font-weight: 700;
+}
+
+.membership-card {
+    background: linear-gradient(135deg, rgba(0, 168, 107, 0.05), rgba(0, 168, 107, 0.02));
+    border: 2px solid var(--neon-green);
+    border-radius: 15px;
+    padding: 25px;
+    position: relative;
+    overflow: hidden;
+}
+
+.membership-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--neon-green), transparent);
+}
+
+.membership-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 168, 107, 0.3);
+}
+
+.membership-header h4 {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--neon-green);
+    margin: 0;
+}
+
+.membership-details {
+    margin-bottom: 20px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 168, 107, 0.15);
+    font-size: 14px;
+}
+
+.detail-row:last-of-type {
+    border-bottom: none;
+}
+
+.detail-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.detail-value {
+    color: var(--text-dark);
+    font-weight: 700;
+}
+
+.membership-benefits {
+    background-color: rgba(0, 168, 107, 0.08);
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 4px solid var(--neon-green);
+}
+
+.membership-benefits h6 {
+    color: var(--neon-green);
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.benefits-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.benefits-list li {
+    color: var(--text-dark);
+    padding: 8px 0;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.benefits-list i {
+    font-size: 11px;
+    min-width: 15px;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 1200px) {
+    .sidebar {
+        width: 240px;
+    }
+
+    .main-content {
+        margin-left: 240px;
+    }
+}
+
+@media (max-width: 992px) {
+    .sidebar {
+        width: 220px;
+    }
+
+    .main-content {
+        margin-left: 220px;
+    }
+
+    .dashboard-container {
+        padding: 20px;
+    }
+
+    .top-bar {
+        padding: 15px 20px;
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+
+    .top-bar-left h2 {
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 60px;
+        padding: 10px;
+    }
+
+    .sidebar-header {
+        margin-bottom: 20px;
+    }
+
+    .sidebar-logo {
+        font-size: 16px;
+    }
+
+    .sidebar-logo i {
+        font-size: 20px;
+    }
+
+    .sidebar-menu a {
+        padding: 12px;
+        justify-content: center;
+    }
+
+    .sidebar-menu a i {
+        margin-right: 0;
+    }
+
+    .sidebar-menu span,
+    .sidebar-footer span {
+        display: none;
+    }
+
+    .main-content {
+        margin-left: 60px;
+    }
+
+    .dashboard-container {
+        padding: 15px;
+    }
+
+    .top-bar {
+        padding: 10px 15px;
+    }
+
+    .top-bar-left h2 {
+        font-size: 18px;
+    }
+
+    .stat-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 576px) {
+    .main-content {
+        margin-left: 0;
+    }
+
+    .sidebar {
+        position: absolute;
+        left: -300px;
+        transition: left 0.3s ease;
+        width: 280px;
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    .top-bar {
+        padding: 12px;
+    }
+
+    .top-bar-left h2 {
+        font-size: 16px;
+    }
+
+    .card-header h5 {
+        font-size: 16px;
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .dashboard-container {
+        padding: 10px;
+    }
+}

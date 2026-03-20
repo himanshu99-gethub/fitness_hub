@@ -1,0 +1,504 @@
+<!-- Firebase & Payment Integration Setup Guide -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Hub - Setup Guide</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0a0e27;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: #1a1f3a;
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #00ff41;
+        }
+        h1 {
+            color: #00ff41;
+            border-bottom: 3px solid #00ff41;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #00ff99;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        h3 {
+            color: #00ff41;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        code {
+            background-color: #0a0e27;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #00ff41;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background-color: #0a0e27;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #00ff41;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        pre code {
+            padding: 0;
+            background: none;
+        }
+        .step {
+            background-color: #262d4a;
+            padding: 20px;
+            border-left: 5px solid #00ff41;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .tip {
+            background-color: rgba(0, 153, 255, 0.1);
+            border-left: 5px solid #0099ff;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .warning {
+            background-color: rgba(255, 100, 0, 0.1);
+            border-left: 5px solid #ff6400;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: rgba(0, 255, 65, 0.1);
+            border-left: 5px solid #00ff41;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+        }
+        th {
+            background-color: rgba(0, 255, 65, 0.1);
+            color: #00ff41;
+            font-weight: 700;
+        }
+        ul, ol {
+            margin-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        a {
+            color: #00ff41;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        a:hover {
+            color: #00ff99;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Fitness Hub - Complete Setup Guide</h1>
+
+        <!-- Firebase Setup -->
+        <h2>1️⃣ Firebase Configuration</h2>
+
+        <div class="step">
+            <h3>Step 1: Create Firebase Project</h3>
+            <ol>
+                <li>Go to <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></li>
+                <li>Click "Add project"</li>
+                <li>Enter project name: "fitness-hub"</li>
+                <li>Enable Google Analytics (Optional)</li>
+                <li>Click "Create project"</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Get Firebase Config</h3>
+            <ol>
+                <li>In Firebase Console, click the gear icon, go to Project Settings</li>
+                <li>Under "Your apps", select "Web" (or add if not present)</li>
+                <li>Copy the Firebase configuration</li>
+                <li>Paste it in <code>assets/js/script.js</code> at line 124</li>
+            </ol>
+
+            <p>Your config should look like:</p>
+            <pre><code>const firebaseConfig = {
+  apiKey: "YOUR_API_KEY_HERE",
+  authDomain: "fitness-hub-xxxxx.firebaseapp.com",
+  projectId: "fitness-hub-xxxxx",
+  storageBucket: "fitness-hub-xxxxx.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
+};</code></pre>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Enable Authentication</h3>
+            <ol>
+                <li>Go to Firebase Console > Authentication</li>
+                <li>Click "Get Started"</li>
+                <li>Enable "Email/Password" sign-in method</li>
+                <li>Enable "Google" sign-in (optional)</li>
+                <li>Save changes</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Setup Firestore Database</h3>
+            <ol>
+                <li>Go to Firebase Console > Firestore Database</li>
+                <li>Click "Create Database"</li>
+                <li>Start in "Production Mode"</li>
+                <li>Select your region (closest to your users)</li>
+                <li>Click "Enable"</li>
+            </ol>
+
+            <p>Create collections:</p>
+            <table>
+                <tr>
+                    <th>Collection Name</th>
+                    <th>Document Format</th>
+                </tr>
+                <tr>
+                    <td>users</td>
+                    <td>uid (auto-generated)</td>
+                </tr>
+                <tr>
+                    <td>workouts</td>
+                    <td>userId + workoutId</td>
+                </tr>
+                <tr>
+                    <td>diet_plans</td>
+                    <td>userId + planId</td>
+                </tr>
+                <tr>
+                    <td>progress</td>
+                    <td>userId + progressId</td>
+                </tr>
+                <tr>
+                    <td>payments</td>
+                    <td>userId + paymentId</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="tip">
+            <strong>💡 Tip:</strong> Uncomment the Firebase initialization code in <code>assets/js/script.js</code> and <code>assets/js/auth.js</code> after adding your config.
+        </div>
+
+        <!-- Razorpay Setup -->
+        <h2>2️⃣ Razorpay Payment Integration</h2>
+
+        <div class="step">
+            <h3>Step 1: Create Razorpay Account</h3>
+            <ol>
+                <li>Go to <a href="https://razorpay.com" target="_blank">Razorpay.com</a></li>
+                <li>Sign up for a merchant account</li>
+                <li>Verify your email and phone</li>
+                <li>Complete KYC verification</li>
+                <li>Activate your account</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Get API Keys</h3>
+            <ol>
+                <li>In Razorpay Dashboard, go to Settings > API Keys</li>
+                <li>Copy your "Key ID" (Public Key)</li>
+                <li>Copy your "Key Secret" (Private Key)</li>
+                <li>Update in <code>assets/js/auth.js</code></li>
+            </ol>
+
+            <p>Update in payment processing function:</p>
+            <pre><code>const options = {
+    key: 'YOUR_RAZORPAY_KEY_ID',
+    amount: selectedPlan.price * 100,
+    currency: 'INR',
+    name: 'Fitness Hub',
+    description: `${selectedPlan.name} Membership`,
+    prefill: {
+        name: userFormData.fullName,
+        email: userFormData.email,
+        contact: userFormData.phone
+    },
+    handler: function(response) {
+        verifyPayment(response.razorpay_payment_id);
+    }
+};
+
+const rzp = new Razorpay(options);
+rzp.open();</code></pre>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Security Note:</strong> Never commit your API keys to GitHub. Use environment variables in production.
+        </div>
+
+        <!-- Stripe Setup (Alternative) -->
+        <h2>3️⃣ Stripe Payment Integration (Alternative)</h2>
+
+        <div class="step">
+            <h3>Step 1: Create Stripe Account</h3>
+            <ol>
+                <li>Go to <a href="https://stripe.com" target="_blank">Stripe.com</a></li>
+                <li>Click "Start now"</li>
+                <li>Fill in your details</li>
+                <li>Verify email</li>
+                <li>Activate account</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Get Publishable Key</h3>
+            <ol>
+                <li>In Stripe Dashboard, go to API Keys</li>
+                <li>Copy "Publishable key"</li>
+                <li>Update in <code>assets/js/auth.js</code></li>
+            </ol>
+
+            <pre><code>const stripe = Stripe('YOUR_STRIPE_PUBLISHABLE_KEY');
+
+stripe.createPaymentMethod({
+    type: 'card',
+    card: cardElement,
+    billing_details: {
+        name: userFormData.fullName,
+        email: userFormData.email
+    }
+}).then(function(result) {
+    if (result.paymentMethod) {
+        completeStripePayment(result.paymentMethod.id);
+    }
+});</code></pre>
+        </div>
+
+        <!-- Email Configuration -->
+        <h2>4️⃣ Email Service Setup</h2>
+
+        <div class="step">
+            <h3>Using Firebase Cloud Functions</h3>
+            <ol>
+                <li>Install Firebase CLI: <code>npm install -g firebase-tools</code></li>
+                <li>Login: <code>firebase login</code></li>
+                <li>Initialize: <code>firebase init functions</code></li>
+                <li>Create function to send emails</li>
+            </ol>
+
+            <pre><code>// functions/index.js
+const functions = require("firebase-functions");
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: process.env.GMAIL_EMAIL,
+        pass: process.env.GMAIL_PASSWORD
+    }
+});
+
+exports.sendWelcomeEmail = functions.auth.user().onCreate(async (user) => {
+    const mailOptions = {
+        from: "noreply@fitnesshub.com",
+        to: user.email,
+        subject: "Welcome to Fitness Hub!",
+        html: `Welcome ${user.email}! Your account is ready.`
+    };
+    
+    return transporter.sendMail(mailOptions);
+});</code></pre>
+        </div>
+
+        <!-- SMS Configuration -->
+        <h2>5️⃣ SMS Notifications (Twilio)</h2>
+
+        <div class="step">
+            <h3>Setup Twilio</h3>
+            <ol>
+                <li>Go to <a href="https://www.twilio.com" target="_blank">Twilio.com</a></li>
+                <li>Sign up for free account</li>
+                <li>Get your Account SID and Auth Token</li>
+                <li>Get a Twilio phone number</li>
+                <li>Add in environment variables</li>
+            </ol>
+
+            <pre><code>// Node.js example
+const twilio = require('twilio');
+const client = twilio(accountSid, authToken);
+
+client.messages.create({
+    body: 'Your membership payment is due in 5 days',
+    from: '+1234567890',
+    to: '+91987654321'
+});</code></pre>
+        </div>
+
+        <!-- Admin Panel Setup -->
+        <h2>6️⃣ Admin Dashboard Setup</h2>
+
+        <div class="step">
+            <h3>Create Admin Credentials</h3>
+            <p>Create an admin user in Firebase with special privileges:</p>
+            <ol>
+                <li>Go to Firebase > Authentication</li>
+                <li>Create user with email: admin@fitnesshub.com</li>
+                <li>Set custom claims to mark as admin</li>
+            </ol>
+
+            <pre><code>// In Firebase Cloud Functions or Admin SDK
+admin.auth().setCustomUserClaims('uid_here', {
+    admin: true,
+    created: new Date()
+}).then(() => {
+    console.log('Admin claims set');
+});</code></pre>
+        </div>
+
+        <!-- Testing -->
+        <h2>7️⃣ Testing the Application</h2>
+
+        <div class="success">
+            <h3>✅ Pre-Deployment Testing</h3>
+            <ol>
+                <li><strong>Unit Tests:</strong> Test individual functions
+                    <pre><code>npm test</code></pre>
+                </li>
+                <li><strong>Integration Tests:</strong> Test Firebase integration
+                    <pre><code>firebase emulators:start</code></pre>
+                </li>
+                <li><strong>Manual Testing:</strong> Test all user flows
+                    <ul>
+                        <li>Registration (all 4 steps)</li>
+                        <li>Login/Logout</li>
+                        <li>Dashboard functionality</li>
+                        <li>Payment processing</li>
+                    </ul>
+                </li>
+                <li><strong>Browser Testing:</strong> Chrome, Firefox, Safari, Edge</li>
+                <li><strong>Mobile Testing:</strong> iPhone, Android</li>
+            </ol>
+        </div>
+
+        <!-- Deployment -->
+        <h2>8️⃣ Deployment</h2>
+
+        <div class="step">
+            <h3>Deploy on Firebase Hosting</h3>
+            <ol>
+                <li>Install Firebase CLI: <code>npm install -g firebase-tools</code></li>
+                <li>Login: <code>firebase login</code></li>
+                <li>Initialize: <code>firebase init hosting</code></li>
+                <li>Select your project</li>
+                <li>Set public directory to <code>./</code></li>
+                <li>Deploy: <code>firebase deploy</code></li>
+            </ol>
+
+            <p>Your app will be live at: <code>https://your-project.firebaseapp.com</code></p>
+        </div>
+
+        <div class="step">
+            <h3>Deploy on Vercel (Alternative)</h3>
+            <ol>
+                <li>Push to GitHub</li>
+                <li>Connect to <a href="https://vercel.com" target="_blank">Vercel</a></li>
+                <li>Select repository</li>
+                <li>Deploy automatically</li>
+            </ol>
+        </div>
+
+        <!-- Environment Variables -->
+        <h2>9️⃣ Environment Variables</h2>
+
+        <p>Create a <code>.env</code> file (don't commit to Git):</p>
+        <pre><code>FIREBASE_API_KEY=your_api_key
+FIREBASE_AUTH_DOMAIN=your_auth_domain
+FIREBASE_PROJECT_ID=your_project_id
+RAZORPAY_KEY_ID=your_razorpay_key
+STRIPE_PUBLIC_KEY=your_stripe_key
+GMAIL_EMAIL=your_email
+GMAIL_PASSWORD=your_app_password
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token</code></pre>
+
+        <!-- Security Checklist -->
+        <h2>🔐 Security Checklist</h2>
+
+        <div class="warning">
+            <h3>Before Going Live</h3>
+            <ul>
+                <li>✓ Never commit secrets to GitHub</li>
+                <li>✓ Use HTTPS only</li>
+                <li>✓ Enable two-factor authentication on Firebase</li>
+                <li>✓ Set up Firebase Security Rules</li>
+                <li>✓ Enable CORS for your domain</li>
+                <li>✓ Add email verification</li>
+                <li>✓ Setup rate limiting on APIs</li>
+                <li>✓ Enable WAF (Web Application Firewall)</li>
+                <li>✓ Regular security audits</li>
+                <li>✓ Keep dependencies updated</li>
+            </ul>
+        </div>
+
+        <!-- Troubleshooting -->
+        <h2>🔧 Troubleshooting</h2>
+
+        <div class="step">
+            <h3>Common Issues</h3>
+
+            <p><strong>Issue:</strong> "Firebase is not defined"</p>
+            <p><strong>Solution:</strong> Add Firebase CDN in HTML head</p>
+            <pre><code>&lt;script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"&gt;&lt;/script&gt;</code></pre>
+
+            <p><strong>Issue:</strong> "CORS error with payment gateway"</p>
+            <p><strong>Solution:</strong> Configure CORS in Firebase settings</p>
+
+            <p><strong>Issue:</strong> "Payment not processing"</p>
+            <p><strong>Solution:</strong> Check Razorpay/Stripe keys, verify SSL certificate</p>
+
+            <p><strong>Issue:</strong> "Data not saving to Firestore"</p>
+            <p><strong>Solution:</strong> Check Firebase Security Rules, enable write access</p>
+        </div>
+
+        <!-- Support -->
+        <h2>📞 Support & Resources</h2>
+
+        <div class="tip">
+            <h3>Helpful Links</h3>
+            <ul>
+                <li><a href="https://firebase.google.com/docs" target="_blank">Firebase Documentation</a></li>
+                <li><a href="https://razorpay.com/docs" target="_blank">Razorpay Documentation</a></li>
+                <li><a href="https://stripe.com/docs" target="_blank">Stripe Documentation</a></li>
+                <li><a href="https://www.chartjs.org/docs" target="_blank">Chart.js Documentation</a></li>
+                <li><a href="https://developer.mozilla.org" target="_blank">MDN Web Docs</a></li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #00ff41;">
+            <p style="color: #00ff41; font-weight: 700; font-size: 18px;">🎉 You're all set! Start building! 🚀</p>
+            <p>For more help, visit the README.md file or contact support@fitnesshub.com</p>
+        </div>
+    </div>
+</body>
+</html>
