@@ -446,29 +446,14 @@ app.post('/send-otp', otpLimiter, async (req, res) => {
         storeOTP(email, otp);
 
         // Send Email
-        try {
-            await transporter.sendMail({
-                from: `"Fitness Hub" <${process.env.GMAIL_USER || process.env.SMTP_USER}>`,
-                to: email,
-                ...getOTPEmailTemplate(otp)
-            });
-
-            console.log(`✅ OTP sent to ${email}: ${otp}`);
-
-            res.json({
-                success: true,
-                message: 'OTP sent successfully to your email',
-                email: email,
-                expiresIn: '5 minutes'
-            });
-
-        } catch (emailError) {
-            console.error('Email sending failed:', emailError);
-            res.status(500).json({
-                success: false,
-                message: 'Failed to send OTP. Please try again.'
-            });
-        }
+        // Email sending disabled for deployment without credentials
+        console.log(`[DEV] OTP email sending skipped for ${email}: ${otp}`);
+        res.json({
+            success: true,
+            message: 'OTP (email sending disabled in deployment)',
+            email: email,
+            expiresIn: '5 minutes'
+        });
 
     } catch (error) {
         console.error('Error in /send-otp:', error);
@@ -493,20 +478,11 @@ app.post('/verify-otp', async (req, res) => {
 
         verifyOTP(email, otp, async (result) => {
             if (result.valid) {
-                // Send welcome email
-                try {
-                    await transporter.sendMail({
-                        from: `"Fitness Hub" <${process.env.GMAIL_USER || process.env.SMTP_USER}>`,
-                        to: email,
-                        ...getWelcomeEmailTemplate(email.split('@')[0])
-                    });
-                } catch (err) {
-                    console.log('Welcome email sending skipped:', err.message);
-                }
-
+                // Email sending disabled for deployment
+                console.log(`[DEV] Welcome email sending skipped for ${email}`);
                 return res.json({
                     success: true,
-                    message: 'OTP verified successfully'
+                    message: 'OTP verified successfully (email sending disabled)'
                 });
             } else {
                 return res.status(400).json({
@@ -545,26 +521,13 @@ app.post('/resend-otp', otpLimiter, async (req, res) => {
         storeOTP(email, otp);
 
         // Send Email
-        try {
-            await transporter.sendMail({
-                from: `"Fitness Hub" <${process.env.GMAIL_USER || process.env.SMTP_USER}>`,
-                to: email,
-                ...getOTPEmailTemplate(otp)
-            });
-
-            console.log(`✅ OTP resent to ${email}: ${otp}`);
-
-            res.json({
-                success: true,
-                message: 'New OTP sent to your email',
-                expiresIn: '5 minutes'
-            });
-        } catch (emailError) {
-            res.status(500).json({
-                success: false,
-                message: 'Failed to send OTP'
-            });
-        }
+        // Email sending disabled for deployment without credentials
+        console.log(`[DEV] OTP resend email skipped for ${email}: ${otp}`);
+        res.json({
+            success: true,
+            message: 'New OTP (email sending disabled in deployment)',
+            expiresIn: '5 minutes'
+        });
 
     } catch (error) {
         console.error('Error in /resend-otp:', error);
