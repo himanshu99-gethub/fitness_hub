@@ -86,14 +86,18 @@ let currentEditingUser = null;
 // Initialize Admin Dashboard
 document.addEventListener('DOMContentLoaded', () => {
     // Validate admin session on page load
-    if (!validateAdminSession()) {
-        return;
+    const sessionValid = validateAdminSession();
+    console.log('✅ Admin dashboard loaded' + (sessionValid ? ' with valid session' : ' - session validation ongoing'));
+    
+    // Load data regardless - if session is invalid, validateAdminSession will redirect
+    try {
+        loadAllUsers();
+        updateStatistics();
+        loadDietPlans();
+        loadWorkoutPlans();
+    } catch (e) {
+        console.error('Error loading dashboard data:', e);
     }
-
-    loadAllUsers();
-    updateStatistics();
-    loadDietPlans();
-    loadWorkoutPlans();
     
     // Periodically validate admin session (every 5 seconds)
     setInterval(() => {
@@ -1007,7 +1011,7 @@ function loadWorkoutPlans() {
 // Load plans when tab is clicked
 document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners for tabs
-    const allUsersTab = document.getElementById('all-users-tab');
+    const allUsersTab = document.getElementById('users-tab');
     const activeTab = document.getElementById('active-members-tab');
     const pendingTab = document.getElementById('pending-members-tab');
     const dietTab = document.getElementById('diet-tab');
