@@ -145,18 +145,13 @@
             localStorage.setItem(ADMIN_DB_KEY, JSON.stringify(db));
         }
 
-        // Validate admin account exists and is active
+        // Validate admin account exists
         function isAdminValid(username) {
             const admins = getAdminDatabase();
             const admin = admins[username];
             
             if (!admin) {
                 console.log('❌ Admin not found:', username);
-                return false;
-            }
-            
-            if (admin.isActive === false) {
-                console.log('❌ Admin account inactive:', username);
                 return false;
             }
             
@@ -179,12 +174,6 @@
             if (!adminData) {
                 alert('❌ Admin user not found!');
                 console.log('Available admins:', Object.keys(admins));
-                return;
-            }
-
-            // Check if admin is active
-            if (adminData.isActive === false) {
-                alert('❌ This admin account has been deleted!');
                 return;
             }
 

@@ -36,11 +36,6 @@ function isAdminValid(username) {
         return false;
     }
     
-    if (admin.isActive === false) {
-        console.log('❌ Admin account inactive:', username);
-        return false;
-    }
-    
     return true;
 }
 
