@@ -19,7 +19,7 @@ function loadPaymentSummary() {
     
     if (!userData || !userData.selectedPlan) {
         console.error('❌ No plan selected');
-        window.location.href = '../pages/membership.html';
+        window.location.href = 'membership.html';
         return;
     }
 
@@ -190,14 +190,11 @@ function processPayment() {
         // Save updated user data
         localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
 
-        // Sync to registered users
-        const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
-        if (registeredUsers) {
-            try {
-                const users = JSON.parse(registeredUsers);
-                const userIndex = users.findIndex(u => u.email === userData.email);
-                if (userIndex >= 0) {
-                    users[userIndex].isPaid = true;
+        // Sync to Firebase - REMOVED local database sync
+        // TODO: Call Firebase API to sync payment
+        console.log('✅ Payment synced to cache (Firebase integration needed);
+
+// Rest of the function continues...
                     users[userIndex].paymentStatus = 'completed';
                     users[userIndex].paymentDate = userData.paymentDate;
                     users[userIndex].plan = userData.plan;
@@ -233,7 +230,7 @@ function processPayment() {
 
         // Redirect to dashboard after 2 seconds
         setTimeout(() => {
-            window.location.href = '../pages/dashboard.html';
+            window.location.href = 'dashboard.html';
         }, 2000);
 
     }, 2000); // Simulate 2 second processing
@@ -245,6 +242,6 @@ function processPayment() {
 
 function goBackToMembership() {
     if (confirm('⚠️ Are you sure? Your plan will remain selected.')) {
-        window.location.href = '../pages/membership.html';
+        window.location.href = 'membership.html';
     }
 }

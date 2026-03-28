@@ -102,9 +102,6 @@
                 </button>
             </form>
 
-            <div class="alert alert-info mt-3">
-                <small><i class="fas fa-info-circle"></i> Default: admin / admin123</small>
-            </div>
 
             <hr>
 
@@ -117,21 +114,127 @@
     </div>
 
     <script>
+        // Admin credentials database (will be checked against database)
+        // Stored in localStorage for persistence
+        const ADMIN_DB_KEY = 'fitnesshub_admins';
+        const ADMIN_SESSION_KEY = 'fitnesshub_admin_session';
+
+        function getAdminDatabase() {
+            const stored = localStorage.getItem(ADMIN_DB_KEY);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch (e) {
+                    console.log('Error parsing admin database, using defaults');
+                }
+            }
+            
+            // Default admin admins
+            return {
+                'admin': {
+                    password: 'admin123',
+                    email: 'admin@fitnesshub.com',
+                    fullName: 'Administrator',
+                    createdAt: new Date().toISOString(),
+                    isActive: true
+                }
+            };
+        }
+
+        function saveAdminDatabase(db) {
+            localStorage.setItem(ADMIN_DB_KEY, JSON.stringify(db));
+        }
+
+        // Validate admin account exists and is active
+        function isAdminValid(username) {
+            const admins = getAdminDatabase();
+            const admin = admins[username];
+            
+            if (!admin) {
+                console.log('❌ Admin not found:', username);
+                return false;
+            }
+            
+            if (admin.isActive === false) {
+                console.log('❌ Admin account inactive:', username);
+                return false;
+            }
+            
+            return true;
+        }
+
         function adminLogin() {
             const username = document.getElementById('adminUsername').value;
             const password = document.getElementById('adminPassword').value;
 
-            // Simple admin validation (in production, this should be verified from backend)
-            if (username === 'admin' && password === 'admin123') {
-                localStorage.setItem('fitnesshub_admin_session', JSON.stringify({
-                    username: username,
-                    loginTime: new Date().toISOString(),
-                }));
-                window.location.href = 'admin-dashboard.html';
-            } else {
-                alert('❌ Invalid credentials! Try: admin / admin123');
+            if (!username || !password) {
+                alert('❌ Please enter both username and password!');
+                return;
             }
+
+            // Get admin database
+            const admins = getAdminDatabase();
+            const adminData = admins[username];
+            
+            if (!adminData) {
+                alert('❌ Admin user not found!');
+                console.log('Available admins:', Object.keys(admins));
+                return;
+            }
+
+            // Check if admin is active
+            if (adminData.isActive === false) {
+                alert('❌ This admin account has been deleted!');
+                return;
+            }
+
+            // Verify password
+            if (adminData.password !== password) {
+                alert('❌ Invalid password!');
+                return;
+            }
+
+            // Admin verified - create session
+            const adminSession = {
+                username: username,
+                email: adminData.email,
+                fullName: adminData.fullName,
+                loginTime: new Date().toISOString(),
+                role: 'admin',
+                isAuthenticated: true,
+                sessionId: 'admin_' + Date.now() // Add session ID for validation
+            };
+
+            localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(adminSession));
+            console.log('✅ Admin logged in:', username);
+            window.location.href = 'admin-dashboard.html';
         }
+
+        // Check if admin already logged in (with validation)
+        document.addEventListener('DOMContentLoaded', () => {
+            const session = localStorage.getItem(ADMIN_SESSION_KEY);
+            if (session) {
+                try {
+                    const adminSession = JSON.parse(session);
+                    
+                    // Validate admin account still exists
+                    if (!isAdminValid(adminSession.username)) {
+                        console.log('❌ Admin account no longer valid');
+                        localStorage.removeItem(ADMIN_SESSION_KEY);
+                        alert('⚠️ Your admin account has been deleted. Please contact the system administrator.');
+                        return;
+                    }
+                    
+                    if (adminSession.isAuthenticated) {
+                        console.log('✅ Admin session found, redirecting to dashboard');
+                        window.location.href = 'admin-dashboard.html';
+                    }
+                } catch (e) {
+                    console.log('Invalid session:', e);
+                    localStorage.removeItem(ADMIN_SESSION_KEY);
+                }
+            }
+        });
 
         // Press Enter to login
         document.getElementById('adminLoginForm').addEventListener('keypress', (e) => {

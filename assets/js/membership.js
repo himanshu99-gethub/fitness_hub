@@ -63,7 +63,7 @@ function loadUserInfo() {
     const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
     
     if (!userData) {
-        window.location.href = '../pages/login.html';
+        window.location.href = 'login.html';
         return;
     }
 
@@ -154,7 +154,7 @@ function proceedToPayment() {
 
     // Redirect to payment after 1 second
     setTimeout(() => {
-        window.location.href = '../pages/payment.html';
+        window.location.href = 'payment.html';
     }, 1000);
 }
 
@@ -167,6 +167,6 @@ function logout(event) {
     if (confirm('⚠️ Are you sure you want to go back? Your plan selection will be cleared.')) {
         localStorage.removeItem('fitnesshub_session');
         localStorage.removeItem('fitnesshub_user');
-        window.location.href = '../pages/login.html';
+        window.location.href = 'login.html';
     }
 }

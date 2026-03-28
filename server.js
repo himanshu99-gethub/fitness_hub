@@ -3,267 +3,28 @@
 // Node.js Backend with SQLite Database
 // ============================================
 
-const express = require('express');
-const nodemailer = require('nodemailer');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const rateLimit = require('express-rate-limit');
-const fs = require('fs');
-const path = require('path');
-
-dotenv.config();
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-
 // ==============================================
-// DATABASE SETUP (JSON File Database)
+// DATABASE SETUP (MySQL)
 // ==============================================
 
-const dbPath = path.join(__dirname, 'fitness_hub.json');
+const mysql = require('mysql2');
 
-class SimpleDB {
-    constructor(filePath) {
-        this.filePath = filePath;
-        this.data = {
-            users: [],
-            otps: [],
-            sessions: []
-        };
-        this.load();
-    }
-
-    load() {
-        try {
-            if (fs.existsSync(this.filePath)) {
-                const content = fs.readFileSync(this.filePath, 'utf-8');
-                this.data = JSON.parse(content);
-            } else {
-                this.save();
-            }
-        } catch (err) {
-            console.error('Error loading database:', err);
-        }
-    }
-
-    save() {
-        try {
-            fs.writeFileSync(this.filePath, JSON.stringify(this.data, null, 2));
-        } catch (err) {
-            console.error('Error saving database:', err);
-        }
-    }
-
-    run(sql, params = [], callback) {
-        setTimeout(() => {
-            try {
-                if (sql.includes('INSERT INTO otps')) {
-                    const [email, otp, expiresAt] = params;
-                    this.data.otps.push({
-                        id: Date.now(),
-                        email,
-                        otp,
-                        attempts: 0,
-                        expires_at: expiresAt,
-                        created_at: new Date().toISOString(),
-                        verified: 0
-                    });
-                    this.save();
-                } else if (sql.includes('UPDATE otps SET verified')) {
-                    // Mark OTP as verified
-                    this.data.otps.forEach(o => {
-                        if (o.otp === params[0]) o.verified = 1;
-                    });
-                    this.save();
-                } else if (sql.includes('DELETE FROM otps')) {
-                    this.data.otps = this.data.otps.filter(o => o.expires_at >= new Date().toISOString());
-                    this.save();
-                } else if (sql.includes('INSERT INTO users')) {
-                    this.data.users.push({
-                        id: Date.now(),
-                        ...Object.fromEntries(['email', 'fullName', 'phone', 'age', 'gender', 'height', 'weight', 'goal', 'experience', 'plan'].map((k, i) => [k, params[i]]))
-                    });
-                    this.save();
-                } else if (sql.includes('UPDATE users')) {
-                    const email = params[params.length - 1];
-                    const user = this.data.users.find(u => u.email === email);
-                    if (user) {
-                        ['fullName', 'phone', 'age', 'gender', 'height', 'weight', 'goal', 'experience', 'plan'].forEach((k, i) => {
-                            user[k] = params[i];
-                        });
-                        this.save();
-                    }
-                }
-                callback && callback(null);
-            } catch (err) {
-                callback && callback(err);
-            }
-        }, 0);
-    }
-
-    get(sql, params = [], callback) {
-        setTimeout(() => {
-            try {
-                if (sql.includes('SELECT * FROM otps WHERE email')) {
-                    const email = params[0];
-                    const now = new Date().toISOString();
-                    const otp = this.data.otps.find(o => o.email === email && o.expires_at > now);
-                    callback(null, otp);
-                } else if (sql.includes('SELECT * FROM users WHERE email')) {
-                    const email = params[0];
-                    const user = this.data.users.find(u => u.email === email);
-                    callback(null, user);
-                } else if (sql.includes('SELECT id FROM users')) {
-                    const email = params[0];
-                    const user = this.data.users.find(u => u.email === email);
-                    callback(null, user ? { id: user.id } : null);
-                } else {
-                    callback(null, null);
-                }
-            } catch (err) {
-                callback(err);
-            }
-        }, 0);
-    }
-
-    all(sql, params = [], callback) {
-        setTimeout(() => {
-            try {
-                if (sql.includes('SELECT * FROM users')) {
-                    callback(null, this.data.users);
-                } else if (sql.includes('SELECT * FROM otps')) {
-                    callback(null, this.data.otps.slice(0, 100));
-                } else {
-                    callback(null, []);
-                }
-            } catch (err) {
-                callback(err);
-            }
-        }, 0);
-    }
-}
-
-const db = new SimpleDB(dbPath);
-
-async function initializeDatabase() {
-    console.log('✅ JSON database initialized:', dbPath);
-    
-    // Clean up expired OTPs
-    const now = new Date().toISOString();
-    const beforeCount = db.data.otps.length;
-    db.data.otps = db.data.otps.filter(otp => otp.expires_at > now);
-    if (db.data.otps.length < beforeCount) {
-        db.save();
-        console.log('✅ Expired OTPs cleaned');
-    }
-    
-    console.log(`📊 Database status: ${db.data.users.length} users, ${db.data.otps.length} active OTPs`);
-}
-
-// Initialize database when server starts
-initializeDatabase();
-
-// ==============================================
-// MIDDLEWARE
-// ==============================================
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname)));
-
-// Rate limiting: Max 5 OTP requests per email per hour
-const otpLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5,
-    message: 'Too many OTP requests. Please try again later.',
-    keyGenerator: (req, res) => req.body.email
+const db = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'fitness_hub',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-// ==============================================
-// EMAIL CONFIGURATION
-// ==============================================
-
-let transporter;
-
-function initializeEmailService() {
-    const emailService = process.env.EMAIL_SERVICE || 'gmail';
-    
-    if (emailService === 'gmail') {
-        transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.GMAIL_USER,
-                pass: process.env.GMAIL_APP_PASSWORD // Use 16-char app password
-            }
-        });
-    } else if (emailService === 'sendgrid') {
-        transporter = nodemailer.createTransport({
-            host: 'smtp.sendgrid.net',
-            port: 587,
-            auth: {
-                user: 'apikey',
-                pass: process.env.SENDGRID_API_KEY
-            }
-        });
-    } else if (emailService === 'smtp') {
-        transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASSWORD
-            }
-        });
-    }
-
-    console.log(`📧 Email service initialized: ${emailService}`);
+function runQuery(sql, params = [], callback) {
+    db.query(sql, params, (err, results) => {
+        callback && callback(err, results);
+    });
 }
-
-// Initialize at startup
-initializeEmailService();
-
-// ==============================================
-// OTP STORAGE (Now using SQLite)
-// ==============================================
-
-function generateOTP() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function storeOTP(email, otp, expiryMinutes = 5) {
-    const expiryTime = new Date(Date.now() + expiryMinutes * 60 * 1000).toISOString();
-    
-    db.run(
-        `INSERT OR REPLACE INTO otps (email, otp, expires_at, attempts, verified) 
-         VALUES (?, ?, ?, 0, 0)`,
-        [email, otp, expiryTime],
-        (err) => {
-            if (err) {
-                console.error('Error storing OTP:', err);
-            } else {
-                console.log(`✅ OTP stored for ${email}`);
-            }
-        }
-    );
-}
-
-function verifyOTP(email, otp, callback) {
-    const now = new Date().toISOString();
-    
-    db.get(
-        `SELECT * FROM otps WHERE email = ? AND expires_at > ? ORDER BY created_at DESC LIMIT 1`,
-        [email, now],
-        (err, row) => {
-            if (err) {
-                callback({ valid: false, message: 'Database error' });
-                return;
-            }
-            
-            if (!row) {
-                callback({ valid: false, message: 'OTP expired or not found' });
-                return;
-            }
             
             if (row.attempts >= 5) {
                 db.run(`DELETE FROM otps WHERE id = ?`, [row.id]);
@@ -289,14 +50,20 @@ function getUserByEmail(email, callback) {
     db.get(`SELECT * FROM users WHERE email = ?`, [email], callback);
 }
 
+// Get user by email
+function getUserByEmail(email, callback) {
+    runQuery(`SELECT * FROM users WHERE email = ?`, [email], (err, results) => {
+        callback(err, results && results[0]);
+    });
+}
+
 // Create or update user
 function saveUser(userData, callback) {
     const { email, fullName, phone, age, gender, height, weight, goal, experience, plan } = userData;
-    
-    db.get(`SELECT id FROM users WHERE email = ?`, [email], (err, row) => {
-        if (row) {
+    runQuery(`SELECT id FROM users WHERE email = ?`, [email], (err, results) => {
+        if (results && results.length > 0) {
             // Update existing user
-            db.run(
+            runQuery(
                 `UPDATE users SET fullName = ?, phone = ?, age = ?, gender = ?, 
                                   height = ?, weight = ?, goal = ?, experience = ?, 
                                   plan = ?, updated_at = CURRENT_TIMESTAMP WHERE email = ?`,
@@ -305,7 +72,7 @@ function saveUser(userData, callback) {
             );
         } else {
             // Insert new user
-            db.run(
+            runQuery(
                 `INSERT INTO users (email, fullName, phone, age, gender, height, weight, goal, experience, plan)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [email, fullName, phone, age, gender, height, weight, goal, experience, plan],

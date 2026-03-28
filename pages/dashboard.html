@@ -7,8 +7,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css" rel="stylesheet">
-    <!-- Supabase JS Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- Supabase removed -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <link href="../assets/css/dashboard-style.css" rel="stylesheet" id="themeStylesheet">
     <style>
@@ -36,7 +35,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const session = localStorage.getItem('fitnesshub_session');
             if (!session) {
-                window.location.href = '../pages/login.html';
+                window.location.href = 'login.html';
             }
         });
     </script>
@@ -911,7 +910,7 @@
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="../assets/js/supabase-config.js"></script>
+    <!-- Supabase config removed -->
     <script src="../assets/js/dashboard.js"></script>
     
     <!-- Sidebar Navigation Handler -->

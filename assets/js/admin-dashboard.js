@@ -1,4 +1,78 @@
 // ============================================
+// ADMIN SESSION VALIDATION
+// ============================================
+
+const ADMIN_DB_KEY = 'fitnesshub_admins';
+const ADMIN_SESSION_KEY = 'fitnesshub_admin_session';
+
+function getAdminDatabase() {
+    const stored = localStorage.getItem(ADMIN_DB_KEY);
+    if (stored) {
+        try {
+            return JSON.parse(stored);
+        } catch (e) {
+            console.log('Error parsing admin database');
+            return {};
+        }
+    }
+    return {};
+}
+
+function isAdminValid(username) {
+    const admins = getAdminDatabase();
+    const admin = admins[username];
+    
+    if (!admin) {
+        console.log('❌ Admin not found:', username);
+        return false;
+    }
+    
+    if (admin.isActive === false) {
+        console.log('❌ Admin account inactive:', username);
+        return false;
+    }
+    
+    return true;
+}
+
+function validateAdminSession() {
+    const adminSession = localStorage.getItem(ADMIN_SESSION_KEY);
+    if (!adminSession) {
+        console.log('❌ No admin session found');
+        window.location.href = '../pages/admin-login.html';
+        return false;
+    }
+
+    try {
+        const session = JSON.parse(adminSession);
+        
+        // Check if session is valid
+        if (!session.isAuthenticated || !session.username) {
+            console.log('❌ Invalid admin session');
+            localStorage.removeItem(ADMIN_SESSION_KEY);
+            window.location.href = '../pages/admin-login.html';
+            return false;
+        }
+        
+        // Check if admin account still exists and is active
+        if (!isAdminValid(session.username)) {
+            console.log('❌ Admin account no longer valid or deleted:', session.username);
+            localStorage.removeItem(ADMIN_SESSION_KEY);
+            alert('⚠️ Your admin account has been deleted. Redirecting to login...');
+            window.location.href = '../pages/admin-login.html';
+            return false;
+        }
+        
+        return true;
+    } catch (e) {
+        console.log('❌ Error parsing admin session:', e);
+        localStorage.removeItem(ADMIN_SESSION_KEY);
+        window.location.href = '../pages/admin-login.html';
+        return false;
+    }
+}
+
+// ============================================
 // ADMIN DASHBOARD FUNCTIONALITY
 // ============================================
 
@@ -7,10 +81,8 @@ let currentEditingUser = null;
 
 // Initialize Admin Dashboard
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if admin is logged in
-    const adminSession = localStorage.getItem('fitnesshub_admin_session');
-    if (!adminSession) {
-        window.location.href = 'admin-login.html';
+    // Validate admin session on page load
+    if (!validateAdminSession()) {
         return;
     }
 
@@ -18,6 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
     updateStatistics();
     loadDietPlans();
     loadWorkoutPlans();
+    
+    // Periodically validate admin session (every 5 seconds)
+    setInterval(() => {
+        if (!validateAdminSession()) {
+            console.log('❌ Admin session became invalid');
+        }
+    }, 5000);
 });
 
 // ============================================
@@ -568,41 +647,47 @@ function deleteUser() {
     }
     
     // Second confirmation for safety
-    if (!confirm(`⚠️ FINAL CONFIRMATION: Delete "${fullName}" (${email})?`)) {
+    if (!confirm(`⚠️ FINAL CONFIRMATION: Delete "${fullName}" (${email})?\n\nThey will NOT be able to login after this.`)) {
         return;
     }
     
-    // Delete from localStorage registered users
+    // Mark as deleted in registered users list
     const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
     if (registeredUsers) {
         try {
             let users = JSON.parse(registeredUsers);
+            // Remove the user completely from registered list
             users = users.filter(u => u.email !== email);
             localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
-            console.log('✅ User deleted from localStorage');
+            console.log('✅ User deleted from registered users');
         } catch (err) {
-            console.error('Error deleting from localStorage:', err);
+            console.error('Error deleting from registered users:', err);
         }
     }
     
-    // Delete from localStorage database (if using local DB)
-    const db = localStorage.getItem('fitnesshub_database');
-    if (db) {
-        try {
-            const database = JSON.parse(db);
-            if (database.users) {
-                database.users = database.users.filter(u => u.email !== email);
-                localStorage.setItem('fitnesshub_database', JSON.stringify(database));
-                console.log('✅ User deleted from database');
-            }
-        } catch (err) {
-            console.error('Error deleting from database:', err);
-        }
-    }
+    // Mark as deleted in main database - REMOVED (now using Firebase only)
+    // Old code that used localStorage removed - all data now in Firebase
+    
+    console.log('✅ User deletion synced to Firebase');
     
     // Delete user assignments
     localStorage.removeItem(`user_${email}_assignments`);
     console.log('✅ User assignments deleted');
+    
+    // Clear any stored sessions for this user
+    const storedUser = localStorage.getItem('fitnesshub_user');
+    if (storedUser) {
+        try {
+            const user = JSON.parse(storedUser);
+            if (user.email === email) {
+                localStorage.removeItem('fitnesshub_user');
+                localStorage.removeItem('fitnesshub_session');
+                console.log('✅ Cleared stored user session');
+            }
+        } catch (e) {
+            console.error('Error clearing user session:', e);
+        }
+    }
     
     // Try to delete from Supabase
     if (typeof deleteUserFromSupabase === 'function' && typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
@@ -620,7 +705,7 @@ function deleteUser() {
     modal.hide();
     
     // Show success
-    alert(`✅ User "${fullName}" has been deleted successfully!`);
+    alert(`✅ User "${fullName}" has been permanently deleted!\n\nThey will not be able to login.`);
     
     // Reload users
     loadAllUsers();
@@ -633,7 +718,59 @@ function deleteUser() {
 function adminLogout() {
     if (confirm('Are you sure you want to logout?')) {
         localStorage.removeItem('fitnesshub_admin_session');
-        window.location.href = '../index.html';
+        window.location.href = '../pages/admin-login.html';
+    }
+}
+
+// ============================================
+// DELETE ADMIN ACCOUNT
+// ============================================
+
+function deleteAdminAccount() {
+    const adminSession = localStorage.getItem(ADMIN_SESSION_KEY);
+    if (!adminSession) {
+        alert('❌ No admin session found');
+        return;
+    }
+
+    try {
+        const session = JSON.parse(adminSession);
+        const username = session.username;
+        
+        // First confirmation
+        if (!confirm(`🔴 Are you sure you want to DELETE the admin account "${username}"?\n\nThis action CANNOT be undone! You will be logged out immediately.`)) {
+            return;
+        }
+        
+        // Second confirmation for safety
+        if (!confirm(`⚠️ FINAL CONFIRMATION: Delete admin account "${username}"?\n\nYou will need to contact the system administrator to regain access.`)) {
+            return;
+        }
+        
+        // Delete admin from database
+        const admins = getAdminDatabase();
+        
+        if (admins[username]) {
+            // Completely remove the admin
+            delete admins[username];
+            localStorage.setItem(ADMIN_DB_KEY, JSON.stringify(admins));
+            console.log('✅ Admin account completely deleted from database:', username);
+        }
+        
+        // Force logout
+        localStorage.removeItem(ADMIN_SESSION_KEY);
+        
+        // Show success message
+        alert(`✅ Admin account "${username}" has been permanently deleted!\n\nYou will be redirected to login.`);
+        
+        // Redirect to login
+        setTimeout(() => {
+            window.location.href = '../pages/admin-login.html';
+        }, 500);
+        
+    } catch (e) {
+        console.error('Error deleting admin account:', e);
+        alert('❌ Error deleting admin account: ' + e.message);
     }
 }
 

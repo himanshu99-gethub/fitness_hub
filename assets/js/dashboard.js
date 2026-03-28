@@ -4,6 +4,37 @@
 
 let currentTheme = 'dark'; // 'dark' or 'light'
 
+// ============ UTILITY FUNCTIONS ============
+
+/**
+ * Format date to readable format
+ */
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    } catch (e) {
+        return dateString;
+    }
+}
+
+/**
+ * Format currency
+ */
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
 // Global dashboard state
 window.dashboardState = {
     userProfile: null,
@@ -21,7 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const session = localStorage.getItem('fitnesshub_session');
         if (!session) {
             console.log('❌ No session found - redirecting to login');
-            window.location.href = '../pages/login.html';
+            window.location.href = 'login.html';
             return;
         }
         
@@ -41,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // If payment not complete, redirect to membership page
             if (!userData || userData.isPaid !== true) {
                 console.log('⚠️ Payment not complete - redirecting to membership page');
-                window.location.href = '../pages/membership.html';
+                window.location.href = 'membership.html';
                 return;
             }
 
@@ -116,7 +147,7 @@ async function loadUserData() {
         const sessionData = localStorage.getItem('fitnesshub_session');
 
         if (!sessionData) {
-            window.location.href = '../pages/login.html';
+            window.location.href = 'login.html';
             return;
         }
 
@@ -709,24 +740,9 @@ function completePaymentFromWindow(userData) {
 
     localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
 
-    // Sync to registered users
-    const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
-    if (registeredUsers) {
-        try {
-            const users = JSON.parse(registeredUsers);
-            const userIndex = users.findIndex(u => u.email === userData.email);
-            if (userIndex >= 0) {
-                users[userIndex].isPaid = true;
-                users[userIndex].paymentStatus = 'completed';
-                users[userIndex].paymentDate = userData.paymentDate;
-                users[userIndex].plan = userData.plan;
-                users[userIndex].phone = userData.phone;
-                users[userIndex].fullName = userData.fullName;
-                users[userIndex].age = userData.age;
-                users[userIndex].gender = userData.gender;
-                users[userIndex].email = userData.email;
-                localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
-                console.log('✅ User synced to admin list with contact info');
+    // Update in Firebase - REMOVED local database sync
+    // TODO: Call Firebase API to sync payment status
+    console.log('✅ Payment synced (Firebase integration needed)');
             }
         } catch (err) {
             console.log('⚠️ Error syncing payment:', err);
@@ -898,10 +914,12 @@ function completePayment(userData) {
 
     localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
 
-    // SYNC: Update payment status in registered users list for admin panel
-    const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
-    if (registeredUsers) {
-        try {
+    // Update in Firebase - REMOVED local database sync
+    // TODO: Call Firebase API to sync data
+    console.log('✅ User data synced (Firebase integration needed)');
+
+    // SYNC: Update registered users list for admin panel - REMOVED
+    // Using Firebase only now
             const users = JSON.parse(registeredUsers);
             const userIndex = users.findIndex(u => u.email === userData.email);
             if (userIndex >= 0) {

@@ -278,7 +278,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const session = localStorage.getItem('fitnesshub_session');
             if (!session) {
-                window.location.href = '../pages/login.html';
+                window.location.href = 'login.html';
             }
         });
     </script>
@@ -327,7 +327,7 @@
 
         <!-- Button Section -->
         <div class="button-section">
-            <a href="../pages/register.html" class="btn-back" onclick="logout(event)">
+            <a href="register.html" class="btn-back" onclick="logout(event)">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
             <button class="btn-select" id="proceedBtn" onclick="proceedToPayment()" disabled>

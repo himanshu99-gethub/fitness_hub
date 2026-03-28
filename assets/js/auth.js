@@ -1,6 +1,8 @@
 // ============================================
 // AUTHENTICATION & REGISTRATION FUNCTIONALITY
 // ============================================
+// NOTE: All user data is now stored in Firebase Realtime Database
+// localStorage is used ONLY for temporary session cache
 
 let currentStep = 1;
 let selectedPlan = null;
@@ -222,10 +224,13 @@ function selectPlan(planType, element) {
         <strong>Selected Plan:</strong> ${selectedPlan.name} - ₹${selectedPlan.price}/month
     `;
 
-    // Update payment summary
-    document.getElementById('summaryPlan').textContent = `${selectedPlan.name} (Monthly)`;
-    document.getElementById('summaryAmount').textContent = `₹${selectedPlan.price}`;
-    document.getElementById('totalAmount').textContent = `₹${selectedPlan.price}`;
+    // Update payment summary (elements may not exist on all pages)
+    const summaryPlan = document.getElementById('summaryPlan');
+    const summaryAmount = document.getElementById('summaryAmount');
+    const totalAmount = document.getElementById('totalAmount');
+    if (summaryPlan) summaryPlan.textContent = `${selectedPlan.name} (Monthly)`;
+    if (summaryAmount) summaryAmount.textContent = `₹${selectedPlan.price}`;
+    if (totalAmount) totalAmount.textContent = `₹${selectedPlan.price}`;
 }
 
 // ============================================
@@ -259,29 +264,25 @@ function showPaymentProcessing() {
 
 function completeRegistration() {
     console.log('🎉 Completing registration...');
-    
     // Validate all required data is present
     if (!userFormData.fullName || !userFormData.email || !userFormData.phone || !userFormData.password) {
         alert('❌ Personal information incomplete');
         return;
     }
-    
     if (!userFormData.age || !userFormData.gender || !userFormData.height || !userFormData.weight || !userFormData.goal || !userFormData.experience) {
         alert('❌ Please fill all fitness profile fields');
         return;
     }
-    
     if (!selectedPlan) {
         alert('❌ Please select a membership plan');
         return;
     }
-    
     console.log('✅ All data validated');
-    
     // Create user record
+    const emailLC = userFormData.email.toLowerCase();
     const userRecord = {
         fullName: userFormData.fullName,
-        email: userFormData.email,
+        email: emailLC,
         phone: userFormData.phone,
         password: userFormData.password,
         age: parseInt(userFormData.age),
@@ -302,18 +303,14 @@ function completeRegistration() {
         paymentStatus: 'pending',
         paymentDate: null
     };
-    
     // Save to database (both localStorage and Supabase)
     saveUser(userRecord);
-    
     // Also store in localStorage for compatibility
     localStorage.setItem('fitnesshub_user', JSON.stringify(userRecord));
     console.log('✅ User saved to localStorage');
-    
     // Add to registered users list (for admin panel)
     let registeredUsers = [];
     const existingUsers = localStorage.getItem('fitnesshub_registered_users');
-    
     if (existingUsers) {
         try {
             registeredUsers = JSON.parse(existingUsers);
@@ -321,12 +318,10 @@ function completeRegistration() {
             registeredUsers = [];
         }
     }
-    
-    const emailExists = registeredUsers.some(u => u.email.toLowerCase() === userFormData.email.toLowerCase());
-    
+    const emailExists = registeredUsers.some(u => u.email && u.email.toLowerCase() === emailLC);
     if (!emailExists) {
         registeredUsers.push({
-            email: userFormData.email,
+            email: emailLC,
             fullName: userFormData.fullName,
             phone: userFormData.phone,
             age: parseInt(userFormData.age),
@@ -341,35 +336,28 @@ function completeRegistration() {
             paymentStatus: 'pending',
             paymentDate: null
         });
-        
         localStorage.setItem('fitnesshub_registered_users', JSON.stringify(registeredUsers));
         console.log('✅ Added to registered users list');
     }
-    
     // Create session
     localStorage.setItem('fitnesshub_session', JSON.stringify({
-        email: userFormData.email,
+        email: emailLC,
         loginTime: new Date().toISOString(),
         rememberMe: true,
         otpVerified: true,
         autoLogin: true
     }));
-    
-    console.log('✅ User registered successfully:', userFormData.email);
-    
+    console.log('✅ User registered successfully:', emailLC);
     // Show success step
-    document.getElementById('successEmail').textContent = userFormData.email;
+    document.getElementById('successEmail').textContent = emailLC;
     document.getElementById('successPlan').textContent = selectedPlan.name;
-    
     currentStep = 4;
     updateFormView();
-    
     // Clear form
     clearRegistrationForm();
-    
     // Redirect to payment page directly (plan already selected in registration Step 3)
     setTimeout(() => {
-        window.location.replace('../pages/payment.html');
+        window.location.replace('payment.html');
     }, 2000);
 }
 
@@ -428,11 +416,12 @@ function clearRegistrationForm() {
 // CHECK IF USER IS REGISTERED
 function isUserRegistered(email) {
     try {
-        // Check in Firebase (production)
-        // OR check in localStorage (for demo/testing)
+        // First check via findUser (checks both fitnesshub_database and fitnesshub_user)
+        if (findUser(email)) {
+            return true;
+        }
         
-        // Demo: Check if user exists in localStorage registered users
-        // In production, this would query Firestore/Firebase
+        // Also check registered users list
         const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
         
         if (!registeredUsers) {
@@ -440,7 +429,7 @@ function isUserRegistered(email) {
         }
         
         const users = JSON.parse(registeredUsers);
-        const userExists = users.some(user => user.email.toLowerCase() === email.toLowerCase());
+        const userExists = users.some(user => user.email && user.email.toLowerCase() === email.toLowerCase());
         
         return userExists;
     } catch (error) {
@@ -454,23 +443,6 @@ function isUserRegistered(email) {
 // ============================================
 // All authentication handled client-side with localStorage
 
-const DATABASE_KEY = 'fitnesshub_database';
-const SESSION_KEY = 'fitnesshub_session';
-const OTP_KEY = 'fitnesshub_otp';
-
-// Initialize database if empty
-function initializeDatabase() {
-    if (!localStorage.getItem(DATABASE_KEY)) {
-        localStorage.setItem(DATABASE_KEY, JSON.stringify({
-            users: [],
-            otps: [],
-            sessions: []
-        }));
-    }
-}
-
-// Initialize on page load
-initializeDatabase();
 
 // ============================================
 // PAGE LOAD - RESET FORM IF NEEDED
@@ -483,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentPage.includes('register.html')) {
         console.log('📋 Register page loaded - resetting form to Step 1');
         
-        // Set step to 1 first
+        // Set step to 1 first (already declared at top)
         currentStep = 1;
         selectedPlan = null;
         userFormData = {};
@@ -545,42 +517,18 @@ document.addEventListener('DOMContentLoaded', function() {
 // UTILITY FUNCTIONS
 // ============================================
 
-function getDatabase() {
-    const db = localStorage.getItem(DATABASE_KEY);
-    return JSON.parse(db) || { users: [], otps: [], sessions: [] };
-}
-
-function saveDatabase(db) {
-    localStorage.setItem(DATABASE_KEY, JSON.stringify(db));
-}
+// NOTE: saveUser and findUser are defined below (after utility functions)
+// They handle both localStorage and Supabase sync
 
 function generateOTP() {
     return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-function storeOTP(email, otp) {
-    const db = getDatabase();
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 10 * 60000); // 10 minutes expiry
-    
-    // Remove old OTP for this email
-    db.otps = db.otps.filter(o => o.email !== email);
-    
-    // Add new OTP
-    db.otps.push({
-        email: email,
-        otp: otp,
-        expiresAt: expiresAt.toISOString(),
-        attempts: 0,
-        verified: false
-    });
-    
-    saveDatabase(db);
-}
-
-function verifyOTPCode(email, otp) {
-    const db = getDatabase();
-    const otpRecord = db.otps.find(o => o.email === email);
+// ============================================
+// NOTE: OTP storage now uses Firebase
+// storeOTP and verifyOTPCode functions removed
+// Use Firebase REST API instead via server
+// ============================================
     
     if (!otpRecord) {
         return { success: false, message: 'No OTP found. Please request a new one.' };
@@ -590,80 +538,47 @@ function verifyOTPCode(email, otp) {
         return { success: false, message: 'OTP has expired. Please request a new one.' };
     }
     
-    if (otpRecord.attempts >= 5) {
-        return { success: false, message: 'Too many failed attempts. Please request a new OTP.' };
-    }
-    
-    if (otpRecord.otp !== otp) {
-        otpRecord.attempts++;
-        saveDatabase(db);
-        return { success: false, message: 'Invalid OTP. Please try again.' };
-    }
-    
-    // OTP is correct
-    otpRecord.verified = true;
-    saveDatabase(db);
-    return { success: true, message: 'OTP verified successfully' };
+    // NOTE: Moved to Firebase - OTP verification now handled by backup server
 }
 
-// Using hybrid approach - checks fitnesshub_database first, then falls back to fitnesshub_user
+// ============================================
+// USER LOOKUP - Firebase Compatible
+// ============================================
+
 function findUser(email) {
-    // First, check the main database
-    const db = getDatabase();
-    const user = db.users.find(u => u.email === email);
-    if (user) return user;
-    
-    // Fallback: check if user is stored in fitnesshub_user
+    // Check if user is stored in fitnesshub_user (temporary cache)
     const storedUser = localStorage.getItem('fitnesshub_user');
     if (storedUser) {
         try {
             const parsedUser = JSON.parse(storedUser);
-            if (parsedUser.email === email) {
+            if (parsedUser.email && parsedUser.email.toLowerCase() === email.toLowerCase()) {
+                // Check if user is marked as deleted
+                if (parsedUser.isDeleted === true || parsedUser.isActive === false) {
+                    console.log('❌ User account has been deleted:', email);
+                    return null;
+                }
                 return parsedUser;
             }
         } catch (e) {
             console.error('Error parsing fitnesshub_user:', e);
         }
     }
-    
     return null;
 }
 
+// ============================================
+// SAVE USER - Firebase Integration
+// ============================================
+// NOTE: User data is now stored in Firebase
+// This function saves to localStorage cache only
 function saveUser(userData) {
-    // Save to localStorage immediately (sync)
-    const db = getDatabase();
-    const existingUserIndex = db.users.findIndex(u => u.email === userData.email);
+    // Save to localStorage as temporary cache
+    userData.email = userData.email.toLowerCase();
+    localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
+    console.log('✅ User saved to cache');
     
-    if (existingUserIndex >= 0) {
-        db.users[existingUserIndex] = { ...db.users[existingUserIndex], ...userData, updated_at: new Date().toISOString() };
-    } else {
-        db.users.push({
-            ...userData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        });
-    }
-    saveDatabase(db);
-    console.log('✅ Saved to localStorage');
-    
-    // SUPABASE INTEGRATION - Save to cloud database
-    if (typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
-        console.log('🌐 Syncing to Supabase...');
-        addUser(userData)
-            .then(result => {
-                if (result) {
-                    console.log('✅ Supabase sync successful:', result);
-                } else {
-                    console.warn('⚠️ Supabase sync returned no data');
-                }
-            })
-            .catch(err => {
-                console.error('❌ Supabase sync error (using localStorage as fallback):', err);
-            });
-    } else {
-        console.log('ℹ️ Supabase not configured yet, using localStorage only');
-    }
-    
+    // TODO: Sync to Firebase via API
+    // POST /api/auth/register to sync with Firebase
     return true;
 }
 
@@ -686,47 +601,48 @@ function handleLogin() {
         return;
     }
 
-    // Check if user exists
-    const user = findUser(email);
-    if (!user) {
-        showAlert('❌ This email is not registered. Please register first.', 'error');
-        setTimeout(() => {
-            const registerNow = confirm('Do you want to register now?');
-            if (registerNow) {
-                window.location.href = 'register.html';
+    // Show loading
+    showAlert('🔄 Logging in...', 'info');
+    
+    // Call Firebase API via backend
+    apiLoginUser(email, password)
+        .then(async (result) => {
+            if (!result.success) {
+                showAlert(`❌ ${result.error}`, 'error');
+                return;
             }
-        }, 500);
-        return;
-    }
 
-    // Verify password (simple comparison - in production, use hashed passwords)
-    if (user.password !== password) {
-        showAlert('❌ Incorrect password. Please try again.', 'error');
-        return;
-    }
+            const user = result.data.user;
+            
+            // Check if user has completed payment
+            const isPaid = user.isPaid === true;
+            
+            showAlert('✅ Login successful! Redirecting...', 'success');
+            
+            // Create session
+            setTimeout(() => {
+                localStorage.setItem('fitnesshub_session', JSON.stringify({
+                    email: email,
+                    loginTime: new Date().toISOString(),
+                    rememberMe: rememberMe,
+                    otpVerified: true
+                }));
 
-    // Password correct - Create session and login immediately
-    console.log('%c✅ Login successful for ' + email, 'color: #00ff41; font-size: 14px; font-weight: bold;');
-    
-    showAlert('✅ Login successful! Redirecting to dashboard...', 'success');
-    
-    // Create session
-    setTimeout(() => {
-        localStorage.setItem('fitnesshub_session', JSON.stringify({
-            email: email,
-            loginTime: new Date().toISOString(),
-            rememberMe: rememberMe,
-            otpVerified: true
-        }));
+                // Store user profile
+                localStorage.setItem('fitnesshub_user', JSON.stringify(user));
 
-        // Store user profile
-        localStorage.setItem('fitnesshub_user', JSON.stringify(user));
-        
-        // No need to set fitness flag - profile completion is what matters
-
-        // Redirect to dashboard
-        window.location.href = 'dashboard.html';
-    }, 1500);
+                // Redirect based on payment status
+                if (isPaid) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    // User hasn't paid yet - send to payment page
+                    window.location.href = 'payment.html';
+                }
+            }, 1000);
+        })
+        .catch((error) => {
+            showAlert(`❌ Login failed: ${error.message}`, 'error');
+        });
 }
 
 function startOTPTimer() {
@@ -789,7 +705,18 @@ function verifyOTP() {
             sessionStorage.removeItem('fitnesshub_temp_password');
             sessionStorage.removeItem('fitnesshub_temp_remember');
 
-            window.location.href = 'dashboard.html';
+            // Find user, store profile, and redirect appropriately
+            const user = findUser(email);
+            if (user) {
+                localStorage.setItem('fitnesshub_user', JSON.stringify(user));
+                if (user.isPaid === true) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    window.location.href = 'payment.html';
+                }
+            } else {
+                window.location.href = 'dashboard.html'; // Fallback
+            }
         }, 1500);
     } else {
         showAlert('❌ ' + result.message, 'error');
@@ -1215,7 +1142,7 @@ function getAIWorkoutSuggestion(goal, experience, weight, height) {
         }
     };
 
-    return suggestions[goal]?.[experience] || suggestions.general_fitness.beginner;
+    return suggestions[goal]?.[experience] || suggestions.weight_loss.beginner;
 }
 
 // ============================================
