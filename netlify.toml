@@ -4,7 +4,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "https://fitness-hub-server.up.railway.app/api/:splat"
+  to = "https://gym-fitness-production-c08e.up.railway.app/api/:splat"
   status = 200
   force = true
 

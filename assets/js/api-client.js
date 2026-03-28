@@ -9,7 +9,7 @@ const API_BASE_URL = window.location.hostname === 'localhost'
     ? 'http://localhost:5000/api'
     : window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:5000/api'
-    : 'https://fitness-hub-server.up.railway.app/api'; // Change this to your Railway URL
+    : 'https://gym-fitness-production-c08e.up.railway.app/api'; // Production Railway URL
 
 // ============================================
 // AUTHENTICATION ENDPOINTS
