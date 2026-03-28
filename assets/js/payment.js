@@ -4,8 +4,29 @@
 
 let currentPaymentMethod = 'card';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('💳 Payment page loaded');
+    
+    // Validate session with server (for cross-device sync)
+    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const sessionData = localStorage.getItem('fitnesshub_session');
+    
+    if (sessionData) {
+        try {
+            const session = JSON.parse(sessionData);
+            const serverStatus = await apiValidateSession(session.email);
+            if (!serverStatus.isAuthenticated) {
+                console.log('⚠️ Session expired - redirecting to login');
+                localStorage.removeItem('fitnesshub_session');
+                localStorage.removeItem('fitnesshub_user');
+                window.location.href = 'login.html';
+                return;
+            }
+        } catch (error) {
+            console.error('Error validating session:', error);
+        }
+    }
+    
     loadPaymentSummary();
     setupCardFormatting();
 });

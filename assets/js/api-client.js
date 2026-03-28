@@ -333,6 +333,68 @@ async function apiHealthCheck() {
 }
 
 // ============================================
+// SESSION MANAGEMENT (CROSS-DEVICE SYNC)
+// ============================================
+
+/**
+ * Validate session (check if user is logged in on any device)
+ * This is called when app loads to check if user has an active session
+ */
+async function apiValidateSession(email) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/validate-session?email=${encodeURIComponent(email)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-user-email': email
+            }
+        });
+
+        if (!response.ok) {
+            // Session not found or expired
+            return { success: false, isAuthenticated: false, error: 'Session not found' };
+        }
+
+        const result = await response.json();
+        return { 
+            success: true, 
+            isAuthenticated: true, 
+            user: result.user,
+            session: result.session 
+        };
+    } catch (error) {
+        console.error('❌ Session validation error:', error);
+        return { success: false, isAuthenticated: false, error: error.message };
+    }
+}
+
+/**
+ * Logout user (invalidate session on all devices)
+ */
+async function apiLogoutUser(email) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Logout failed');
+        }
+
+        const result = await response.json();
+        return { success: true, data: result };
+    } catch (error) {
+        console.error('❌ Logout error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// ============================================
 // EXPORT ALL FUNCTIONS
 // ============================================
 
@@ -349,6 +411,8 @@ if (typeof module !== 'undefined' && module.exports) {
         apiCreatePayment,
         apiGetPaymentHistory,
         apiGetTotalRevenue,
-        apiHealthCheck
+        apiHealthCheck,
+        apiValidateSession,
+        apiLogoutUser
     };
 }

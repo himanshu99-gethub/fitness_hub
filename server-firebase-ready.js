@@ -52,10 +52,14 @@ app.post('/api/auth/register', async (req, res) => {
       role: 'user'
     });
 
+    // Create session for newly registered user (for cross-device sync)
+    const session = await firebase.createSession(email);
+
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      user: { userId: user.userId, email: user.email, firstName: user.firstName }
+      user: { userId: user.userId, email: user.email, firstName: user.firstName },
+      session: session // Return session info to client
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -85,10 +89,74 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Create session in Firebase (for cross-device sync)
+    const session = await firebase.createSession(email);
+    
     res.json({
       success: true,
       message: 'Login successful',
-      user: { userId: user.userId, email: user.email, firstName: user.firstName }
+      user: { userId: user.userId, email: user.email, firstName: user.firstName },
+      session: session // Return session info to client
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/auth/validate-session
+ * Check if user has an active session (for cross-device sync)
+ */
+app.get('/api/auth/validate-session', async (req, res) => {
+  try {
+    const email = req.query.email || req.headers['x-user-email'];
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Check if session exists in Firebase
+    const result = await firebase.validateSession(email);
+    
+    if (result.valid) {
+      // Get latest user data
+      const user = await firebase.findUserByEmail(email);
+      return res.json({
+        success: true,
+        isAuthenticated: true,
+        user: { userId: user.userId, email: user.email, firstName: user.firstName },
+        session: result.session
+      });
+    } else {
+      return res.status(401).json({
+        success: false,
+        isAuthenticated: false,
+        error: 'Session not found or expired'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Logout user (invalidate session)
+ */
+app.post('/api/auth/logout', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Invalidate session in Firebase
+    await firebase.invalidateSession(email);
+    
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

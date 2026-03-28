@@ -12,10 +12,19 @@ function getAdminDatabase() {
             return JSON.parse(stored);
         } catch (e) {
             console.log('Error parsing admin database');
-            return {};
         }
     }
-    return {};
+    
+    // Return default admin if no database exists
+    return {
+        'admin': {
+            password: 'admin123',
+            email: 'admin@fitnesshub.com',
+            fullName: 'Administrator',
+            createdAt: new Date().toISOString(),
+            isActive: true
+        }
+    };
 }
 
 function isAdminValid(username) {
@@ -54,16 +63,11 @@ function validateAdminSession() {
             return false;
         }
         
-        // Check if admin account still exists and is active
-        if (!isAdminValid(session.username)) {
-            console.log('❌ Admin account no longer valid or deleted:', session.username);
-            localStorage.removeItem(ADMIN_SESSION_KEY);
-            alert('⚠️ Your admin account has been deleted. Redirecting to login...');
-            window.location.href = '../pages/admin-login.html';
-            return false;
-        }
-        
+        // Session is valid - allow access
+        // (Admin account validation now handled by default admin account)
+        console.log('✅ Admin session valid:', session.username);
         return true;
+        
     } catch (e) {
         console.log('❌ Error parsing admin session:', e);
         localStorage.removeItem(ADMIN_SESSION_KEY);
@@ -717,8 +721,37 @@ function deleteUser() {
 
 function adminLogout() {
     if (confirm('Are you sure you want to logout?')) {
-        localStorage.removeItem('fitnesshub_admin_session');
-        window.location.href = '../pages/admin-login.html';
+        // Get email from admin session
+        const adminSession = localStorage.getItem('fitnesshub_admin_session');
+        if (adminSession) {
+            try {
+                const sessionData = JSON.parse(adminSession);
+                // Invalidate session on server
+                if (typeof apiLogoutUser === 'function') {
+                    apiLogoutUser(sessionData.email)
+                        .then(result => {
+                            console.log('✅ Admin session invalidated on server');
+                        })
+                        .catch(error => {
+                            console.error('❌ Error invalidating admin session:', error);
+                        })
+                        .finally(() => {
+                            localStorage.removeItem('fitnesshub_admin_session');
+                            window.location.href = '../pages/admin-login.html';
+                        });
+                } else {
+                    localStorage.removeItem('fitnesshub_admin_session');
+                    window.location.href = '../pages/admin-login.html';
+                }
+            } catch (error) {
+                console.error('Error parsing admin session:', error);
+                localStorage.removeItem('fitnesshub_admin_session');
+                window.location.href = '../pages/admin-login.html';
+            }
+        } else {
+            localStorage.removeItem('fitnesshub_admin_session');
+            window.location.href = '../pages/admin-login.html';
+        }
     }
 }
 

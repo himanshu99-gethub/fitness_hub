@@ -348,6 +348,122 @@ async function getTotalRevenue() {
     .reduce((sum, payment) => sum + (payment.amount || 0), 0);
 }
 
+// ============ SESSION FUNCTIONS (CROSS-DEVICE SYNC) ============
+
+/**
+ * Create a session in Firebase (called when user logs in)
+ * This allows the session to persist across devices
+ */
+async function createSession(email) {
+  const sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+  const emailKey = email.replace(/[.@]/g, '_');
+  
+  const session = {
+    email,
+    sessionId,
+    createdAt: new Date().toISOString(),
+    lastActivity: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+    isActive: true,
+  };
+  
+  // Store session in Firebase
+  await firebaseRequest(`/sessions/${emailKey}`, 'PUT', session);
+  
+  return { sessionId, email, expiresAt: session.expiresAt };
+}
+
+/**
+ * Get active session for user
+ */
+async function getActiveSession(email) {
+  const emailKey = email.replace(/[.@]/g, '_');
+  
+  try {
+    const session = await firebaseRequest(`/sessions/${emailKey}`, 'GET');
+    
+    if (!session || !session.isActive) {
+      return null;
+    }
+    
+    // Check if session expired
+    if (new Date() > new Date(session.expiresAt)) {
+      // Invalidate expired session
+      await invalidateSession(email);
+      return null;
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Error getting session:', error);
+    return null;
+  }
+}
+
+/**
+ * Validate session (check if user is logged in)
+ */
+async function validateSession(email) {
+  const session = await getActiveSession(email);
+  
+  if (session) {
+    // Update last activity
+    const emailKey = email.replace(/[.@]/g, '_');
+    await firebaseRequest(`/sessions/${emailKey}`, 'PATCH', {
+      lastActivity: new Date().toISOString(),
+    }).catch(err => console.error('Error updating activity:', err));
+    
+    return { valid: true, session };
+  }
+  
+  return { valid: false, session: null };
+}
+
+/**
+ * Invalidate session (logout)
+ */
+async function invalidateSession(email) {
+  const emailKey = email.replace(/[.@]/g, '_');
+  
+  try {
+    await firebaseRequest(`/sessions/${emailKey}`, 'PATCH', {
+      isActive: false,
+      invalidatedAt: new Date().toISOString(),
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error invalidating session:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Clean expired sessions
+ */
+async function cleanExpiredSessions() {
+  try {
+    const allSessions = await firebaseRequest('/sessions', 'GET');
+    
+    if (!allSessions) return { deleted: 0 };
+    
+    let deletedCount = 0;
+    const now = new Date();
+    
+    for (const [emailKey, session] of Object.entries(allSessions)) {
+      if (new Date(session.expiresAt) < now || !session.isActive) {
+        await firebaseRequest(`/sessions/${emailKey}`, 'DELETE');
+        deletedCount++;
+      }
+    }
+    
+    return { deleted: deletedCount };
+  } catch (error) {
+    console.error('Error cleaning sessions:', error);
+    return { deleted: 0 };
+  }
+}
+
 // ============ EXPORTS ============
 
 module.exports = {
@@ -373,4 +489,11 @@ module.exports = {
   createPayment,
   getPaymentHistory,
   getTotalRevenue,
+  
+  // Session functions (for cross-device sync)
+  createSession,
+  getActiveSession,
+  validateSession,
+  invalidateSession,
+  cleanExpiredSessions,
 };

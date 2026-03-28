@@ -48,12 +48,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log('🚀 Initializing dashboard...');
         
-        // Verify session
-        const session = localStorage.getItem('fitnesshub_session');
-        if (!session) {
-            console.log('❌ No session found - redirecting to login');
-            window.location.href = 'login.html';
-            return;
+        // Check for session (both locally and on server for cross-device sync)
+        let session = localStorage.getItem('fitnesshub_session');
+        let userData = JSON.parse(localStorage.getItem('fitnesshub_user') || 'null');
+        
+        if (!session && !userData) {
+            console.log('❌ No local session found - checking with server...');
+            // No local session, but maybe user has an active session on server
+            // Try to get from sessionStorage (temporary)
+            const tempEmail = sessionStorage.getItem('fitnesshub_temp_email');
+            if (tempEmail) {
+                const serverStatus = await apiValidateSession(tempEmail);
+                if (serverStatus.isAuthenticated) {
+                    console.log('✅ Found active session on server - sync to this device');
+                    userData = serverStatus.user;
+                    session = JSON.stringify({
+                        email: tempEmail,
+                        loginTime: new Date().toISOString(),
+                        rememberMe: true,
+                        otpVerified: true
+                    });
+                    localStorage.setItem('fitnesshub_session', session);
+                    localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
+                } else {
+                    console.log('❌ No active session found - redirecting to login');
+                    window.location.href = 'login.html';
+                    return;
+                }
+            } else {
+                console.log('❌ No session found - redirecting to login');
+                window.location.href = 'login.html';
+                return;
+            }
+        } else if (session && userData) {
+            console.log('✅ Found local session - validating with server...');
+            // Verify session is still valid on server
+            const sessionData = JSON.parse(session);
+            const serverStatus = await apiValidateSession(sessionData.email);
+            if (!serverStatus.isAuthenticated) {
+                console.log('⚠️ Session expired on server - redirecting to login');
+                localStorage.removeItem('fitnesshub_session');
+                localStorage.removeItem('fitnesshub_user');
+                window.location.href = 'login.html';
+                return;
+            }
+            console.log('✅ Session validated with server');
         }
         
         // Initialize theme
@@ -1109,9 +1148,29 @@ function saveFillProfile() {
 
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
-        localStorage.removeItem('fitnesshub_session');
-        // Keep user data for next login (so profile stays saved)
-        window.location.href = '../index.html';
+        // Get email from session
+        const session = localStorage.getItem('fitnesshub_session');
+        if (session) {
+            const sessionData = JSON.parse(session);
+            // Invalidate session on server (will logout on all devices)
+            apiLogoutUser(sessionData.email)
+                .then(result => {
+                    console.log('✅ Session invalidated on server');
+                })
+                .catch(error => {
+                    console.error('❌ Error invalidating session:', error);
+                })
+                .finally(() => {
+                    // Clear local session
+                    localStorage.removeItem('fitnesshub_session');
+                    // Keep user data for next login (so profile stays saved)
+                    window.location.href = '../index.html';
+                });
+        } else {
+            // If no session in localStorage, just clear and redirect
+            localStorage.removeItem('fitnesshub_session');
+            window.location.href = '../index.html';
+        }
     }
 }
 
