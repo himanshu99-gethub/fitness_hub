@@ -74,9 +74,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
             
             // If payment not complete, redirect to membership page
-            const isPaid = userData && (userData.isPaid === true || userData.paymentStatus === 'completed' || userData.paymentStatus === 'paid');
+            // We prioritize membership_status which is synced from server in loadUserData()
+            const isPaid = userData && (
+                userData.membership_status === 'active' || 
+                userData.isPaid === true || 
+                userData.paymentStatus === 'completed' || 
+                userData.paymentStatus === 'paid'
+            );
+            
             if (!isPaid) {
-                console.log('⚠️ Payment not complete - redirecting to membership page');
+                console.log('⚠️ Payment not complete (Status: ' + (userData?.membership_status || 'none') + ') - redirecting to membership page');
                 window.location.href = 'membership.html';
                 return;
             }
@@ -123,17 +130,36 @@ async function loadUserData() {
         const session = JSON.parse(sessionData);
         const userEmail = session.email;
         
-        // SYNC WITH PRIMARY DATABASE (fitnesshub_database)
-        const userDb = JSON.parse(localStorage.getItem('fitnesshub_database') || '{}');
-        const latestUserRecord = userDb[userEmail.toLowerCase()];
-        
-        if (latestUserRecord) {
-            // Update the session user with the latest database record
-            localStorage.setItem('fitnesshub_user', JSON.stringify(latestUserRecord));
-            window.dashboardState.userProfile = latestUserRecord;
-            console.log('🔄 Dashboard synced with primary database');
-        } else {
-            // Fallback to existing session user if database record missing
+        // SYNC WITH SERVER DATABASE (Supabase)
+        console.log('🔄 Syncing with Supabase server...');
+        try {
+            const serverUser = await apiGetUser(userEmail);
+            if (serverUser) {
+                // Determine payment status from server
+                const isPaid = serverUser.membership_status === 'active';
+                
+                // Update local record with server truth
+                const localUser = JSON.parse(localStorage.getItem('fitnesshub_user') || '{}');
+                localUser.isPaid = isPaid;
+                localUser.membership_status = serverUser.membership_status;
+                localUser.currentMembershipId = serverUser.current_membership_id;
+                
+                localStorage.setItem('fitnesshub_user', JSON.stringify(localUser));
+                window.dashboardState.userProfile = localUser;
+                console.log('✅ Dashboard synced with Supabase server');
+            } else {
+                // Fallback to primary local database (fitnesshub_database)
+                const userDb = JSON.parse(localStorage.getItem('fitnesshub_database') || '{}');
+                const latestUserRecord = userDb[userEmail.toLowerCase()];
+                
+                if (latestUserRecord) {
+                    localStorage.setItem('fitnesshub_user', JSON.stringify(latestUserRecord));
+                    window.dashboardState.userProfile = latestUserRecord;
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error syncing with server:', error);
+            // Fallback to local storage if server is unreachable
             const userData = localStorage.getItem('fitnesshub_user');
             if (userData) {
                 window.dashboardState.userProfile = JSON.parse(userData);
@@ -141,6 +167,9 @@ async function loadUserData() {
         }
 
         const user = window.dashboardState.userProfile;
+        // Check if the user is actually paid in the profile
+        const isPaid = user && (user.isPaid === true || user.membership_status === 'active');
+        
         if (user) {
             // Display actual user name (from registration)
             const displayName = user.fullName || userEmail.split('@')[0];

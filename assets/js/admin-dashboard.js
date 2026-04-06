@@ -234,8 +234,8 @@ function displayUsers() {
                     <small>
                         <i class="fas fa-crown"></i> Plan: <strong>${userData?.plan?.type || 'N/A'}</strong> | 
                         <i class="fas fa-calendar"></i> Joined: ${formatDate(user.registrationDate)} |
-                        <span class="badge ${userData?.isPaid ? 'bg-success' : 'bg-warning'}">
-                            ${userData?.isPaid ? 'PAID' : 'PENDING'}
+                        <span class="badge ${userData?.membership_status === 'active' || userData?.isPaid ? 'bg-success' : 'bg-warning'}">
+                            ${userData?.membership_status === 'active' || userData?.isPaid ? 'PAID' : 'PENDING'}
                         </span>
                     </small>
                     <br>
@@ -292,26 +292,30 @@ function getUserFullData(email) {
 // ============================================
 
 function updateStatistics() {
-    const users = getMergedUsers();
+    // Priority: use the server-fetched users if available, otherwise fallback
+    const users = (allUsers && allUsers.length > 0) ? allUsers : getMergedUsers();
 
     // Total Users
     document.getElementById('totalUsers').textContent = users.length;
 
     // Active Users (With valid membership)
-    const activeUsers = users.filter(u => u.isPaid === true || u.paymentStatus === 'completed' || u.paymentStatus === 'paid').length;
+    const activeUsers = users.filter(u => u.membership_status === 'active').length;
     document.getElementById('activeUsers').textContent = activeUsers;
 
-    // Premium Users
-    const premiumUsers = users.filter(u => (u.isPaid === true || u.paymentStatus === 'completed' || u.paymentStatus === 'paid') && (u.plan === 'professional' || u.plan === 'elite')).length;
+    // Premium Users (Professional or Elite plans with active status)
+    const premiumUsers = users.filter(u => 
+        u.membership_status === 'active' && 
+        (u.plan === 'professional' || u.plan === 'elite' || (u.plan && (u.plan.type === 'professional' || u.plan.type === 'elite')))
+    ).length;
     document.getElementById('premiumUsers').textContent = premiumUsers;
 
     // Total Revenue - ONLY from PAID members (isPaid = true)
     let totalRevenue = 0;
     users.forEach(u => {
         // Only count revenue from members who have actually paid
-        if (u.isPaid === true || u.paymentStatus === 'completed' || u.paymentStatus === 'paid') {
+        if (u.membership_status === 'active') {
             const planPrices = { starter: 999, professional: 1999, elite: 2999 };
-            const planType = typeof u.plan === 'object' ? u.plan.type : u.plan;
+            const planType = (u.plan && typeof u.plan === 'object') ? u.plan.type : (u.planType || u.plan);
             totalRevenue += planPrices[planType] || 0;
         }
     });
@@ -331,12 +335,8 @@ function loadAndDisplayActiveMembers() {
     // Get all users
     const users = getMergedUsers();
 
-    // Filter only active members (isPaid = true or status completed/paid)
-    const activeMembers = users.filter(u => 
-        u.isPaid === true || 
-        u.paymentStatus === 'completed' || 
-        u.paymentStatus === 'paid'
-    );
+    // Filter only active members (membership_status 'active')
+    const activeMembers = users.filter(u => u.membership_status === 'active');
 
     if (activeMembers.length === 0) {
         noMembersMsg.style.display = 'block';
@@ -423,10 +423,11 @@ function loadAndDisplayPendingMembers() {
     const users = getMergedUsers();
 
     // Filter only pending members (neither isPaid nor status completed/paid)
+    // IMPORTANT: Users with status 'pending' or 'inactive' are considered pending
     const pendingMembers = users.filter(u => 
-        u.isPaid !== true && 
-        u.paymentStatus !== 'completed' && 
-        u.paymentStatus !== 'paid'
+        u.membership_status === 'pending' || 
+        u.membership_status === 'inactive' ||
+        (!u.membership_status && u.isPaid !== true)
     );
 
     if (pendingMembers.length === 0) {

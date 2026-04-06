@@ -127,6 +127,23 @@ app.post('/api/membership/create', async (req, res) => {
     }
 });
 
+app.post('/api/membership/activate', async (req, res) => {
+    try {
+        const { userId, membershipId } = req.body;
+        if (!userId || !membershipId) {
+            return res.status(400).json({ success: false, error: 'Missing userId or membershipId' });
+        }
+        const result = await activateMembership(userId, membershipId);
+        if (result.success) {
+            res.json(result);
+        } else {
+            res.status(400).json(result);
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 app.get('/api/membership/:email', async (req, res) => {
     try {
         const { email } = req.params;

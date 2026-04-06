@@ -127,6 +127,24 @@ async function apiCreateMembership(email, plan, price, duration = 30) {
     }
 }
 
+async function apiActivateMembership(userId, membershipId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/membership/activate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, membershipId })
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Activation failed');
+        }
+        return { success: true, data: await response.json() };
+    } catch (error) {
+        console.error('❌ Membership activation error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 async function apiGetActiveMembership(email) {
     try {
         const response = await fetch(`${API_BASE_URL}/membership/${email}`, {
@@ -274,7 +292,7 @@ async function apiLogoutUser(email) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         apiRegisterUser, apiLoginUser, apiGetProfile, apiGenerateOTP, apiVerifyOTP,
-        apiCreateMembership, apiGetActiveMembership, apiGetMembershipHistory,
+        apiCreateMembership, apiActivateMembership, apiGetActiveMembership, apiGetMembershipHistory,
         apiCreatePayment, apiGetPaymentHistory, apiGetTotalRevenue,
         apiHealthCheck, apiValidateSession, apiLogoutUser
     };

@@ -99,7 +99,21 @@ async function updateUserProfile(userId, updateData) {
 async function createMembership(membershipData) {
   if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
-    const { userId, planName, planType, price, duration, durationUnit, startDate, endDate, features, autoRenew } = membershipData;
+    let { userId, email, planName, planType, plan, price, duration, durationUnit, startDate, endDate, features, autoRenew } = membershipData;
+    
+    // Resolve userId if not provided (for older clients or email-based registration flow)
+    if (!userId && email) {
+      const { data: user, error: uError } = await supabase.from('users').select('id').eq('email', email.toLowerCase()).maybeSingle();
+      if (user) userId = user.id;
+    }
+
+    if (!userId) return { success: false, error: 'User not found or ID missing' };
+
+    // Set defaults from older fields if present
+    planName = planName || plan || 'Subscription';
+    planType = planType || 'monthly';
+    duration = duration || 30;
+    durationUnit = durationUnit || 'days';
     
     const { data, error } = await supabase
       .from('memberships')
@@ -110,9 +124,9 @@ async function createMembership(membershipData) {
         price,
         duration,
         duration_unit: durationUnit,
-        start_date: startDate,
-        end_date: endDate,
-        status: 'active',
+        start_date: startDate || new Date().toISOString(),
+        end_date: endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending', // Starts as pending until payment
         features,
         auto_renew: autoRenew
       }])
@@ -121,10 +135,36 @@ async function createMembership(membershipData) {
 
     if (error) return { success: false, error: error.message };
 
-    // Update user status
-    await supabase.from('users').update({ membership_status: 'active' }).eq('id', userId);
+    // NOTE: We do NOT update user membership_status to 'active' here.
+    // It stays 'inactive' or 'pending' until confirmPayment/activateMembership is called.
+    await supabase.from('users').update({ membership_status: 'pending' }).eq('id', userId);
     
     return { success: true, membership: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function activateMembership(userId, membershipId) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
+  try {
+    // 1. Update membership status to active
+    const { error: mError } = await supabase
+      .from('memberships')
+      .update({ status: 'active' })
+      .eq('id', membershipId);
+
+    if (mError) return { success: false, error: mError.message };
+
+    // 2. Update user membership_status to active
+    const { error: uError } = await supabase
+      .from('users')
+      .update({ membership_status: 'active' })
+      .eq('id', userId);
+
+    if (uError) return { success: false, error: uError.message };
+
+    return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -298,6 +338,7 @@ module.exports = {
   findUserByEmail,
   updateUserProfile,
   createMembership,
+  activateMembership,
   getUserActiveMembership,
   createPayment,
   getUserPayments,

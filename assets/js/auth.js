@@ -389,19 +389,27 @@ async function completeRegistration() {
 
         const userRecord = regResult.data.user;
 
-        // 2. Create Membership on Server
+        // 2. Create Membership on Server (starts as 'pending')
         const memResult = await apiCreateMembership(
             userRecord.email,
-            selectedPlan.type,
+            selectedPlan.name,
             selectedPlan.price,
-            30 // 30 days
+            30
         );
 
         if (!memResult.success) {
             console.warn('Membership creation failed, but user was registered:', memResult.error);
+        } else {
+            // Store the membership ID in the user record for easier activation
+            userRecord.currentMembershipId = memResult.data.membership.id;
         }
 
-        // 3. Create Local Session
+        // 3. Clear ANY legacy status flags from previous users on this browser
+        localStorage.removeItem('fitnesshub_payment_history');
+        localStorage.removeItem('fitnesshub_payment_id');
+        localStorage.removeItem('fitnesshub_is_paid');
+
+        // 4. Create Local Session
         localStorage.setItem(KEY_SESSION, JSON.stringify({
             email:      userRecord.email,
             loginTime:  new Date().toISOString(),
@@ -409,9 +417,12 @@ async function completeRegistration() {
             otpVerified: true
         }));
 
+        // Ensure userRecord reflects the server's initial state properly
+        userRecord.isPaid = false; 
+        userRecord.paymentStatus = 'pending';
         localStorage.setItem(KEY_USER, JSON.stringify(userRecord));
 
-        // 4. Show success step
+        // 5. Show success step
         const successEmail = document.getElementById('successEmail');
         const successPlan  = document.getElementById('successPlan');
         if (successEmail) successEmail.textContent = userRecord.email;
