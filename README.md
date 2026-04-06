@@ -21,7 +21,7 @@ Fitness Hub is a state-of-the-art gym management system designed for a premium u
 ### 📦 Installation & Setup
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/himanshu99-github/Gym-Fitness-Pro.git
+   git clone https://github.com/himanshu99-gethub/fitness_hub.git
    ```
 2. **Install dependencies:**
    ```bash
