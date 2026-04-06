@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     };
                 } else {
                     console.warn('No plan selected and no pending membership on server');
-                    window.location.href = 'membership.html';
+                    window.location.href = 'dashboard.html';
                     return;
                 }
             }
@@ -107,7 +107,7 @@ function setupEventListeners() {
     const backBtn = document.getElementById('backToPlansBtn');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
-             window.location.href = 'membership.html';
+             window.location.href = 'dashboard.html';
         });
     }
 }

@@ -1,8 +1,5 @@
-// ============================================
-// AUTHENTICATION & REGISTRATION FUNCTIONALITY
-// ============================================
-// Fully offline-capable: uses localStorage + sessionStorage
-// No backend server required
+// Fully server-first: uses api-client.js to communicate with Supabase backend
+// Manages local session via localStorage
 
 // ─── GLOBALS ────────────────────────────────────────────────
 let currentStep = 1;
@@ -15,8 +12,31 @@ let resetOtpTimerInterval = null;
 const KEY_SESSION    = 'fitnesshub_session';
 
 // ============================================
-// SESSION HELPERS
+// SESSION & LOCAL STORAGE HELPERS
 // ============================================
+
+const KEY_USER = 'currentUser';
+
+function findUser(email) {
+    // Legacy support: check local storage for user profile
+    const raw = localStorage.getItem('fitnesshub_user');
+    if (!raw) return null;
+    try {
+        const user = JSON.parse(raw);
+        return user.email === email ? user : null;
+    } catch(e) { return null; }
+}
+
+function saveUser(user) {
+    if (!user) return;
+    localStorage.setItem('fitnesshub_user', JSON.stringify(user));
+    localStorage.setItem('currentUser', JSON.stringify(user));
+}
+
+function isUserRegistered(email) {
+    const user = findUser(email);
+    return !!user;
+}
 
 function getSession() {
     try {
@@ -196,12 +216,9 @@ function validatePersonalInfo() {
     if (!password || password.length < 6) { showAlert('Password must be at least 6 characters', 'error'); return false; }
     if (password !== confirm)         { showAlert('Passwords do not match', 'error'); return false; }
 
-    // Check if email already registered
-    if (findUser(email)) {
-        showAlert('This email is already registered. Please login instead.', 'error');
-        return false;
-    }
-
+    // Check if email already registered (Removed because server handles duplicate check)
+    // if (findUser(email)) { ... }
+    
     return true;
 }
 
@@ -311,15 +328,18 @@ async function completeRegistration() {
             gender: userFormData.gender,
             height: parseFloat(userFormData.height),
             weight: parseFloat(userFormData.weight),
-            goal: userFormData.goal,
+            fitnessGoal: userFormData.goal,
             experience: userFormData.experience
         });
 
-        if (!regResult.success) {
+        if (regResult.success === false) {
             throw new Error(regResult.error || 'Registration failed');
         }
 
-        const userRecord = regResult.data;
+        const userRecord = regResult.user || regResult.data;
+        if (!userRecord) {
+            throw new Error('User record missing in response');
+        }
 
         // 2. Create Membership on Server (starts as 'pending')
         const memResult = await apiCreateMembership(
@@ -409,11 +429,14 @@ async function handleLogin() {
     try {
         const result = await apiLoginUser(email, password);
         
-        if (!result.success) {
+        if (result.success === false) {
             throw new Error(result.error || 'Login failed');
         }
-
-        const user = result.data;
+        
+        const user = result.user || result.data;
+        if (!user) {
+            throw new Error('User data missing from response');
+        }
 
         // Save session (Full Profile)
         localStorage.setItem(KEY_SESSION, JSON.stringify({
@@ -434,9 +457,9 @@ async function handleLogin() {
              const membershipResult = await apiGetActiveMembership(user.email);
              let isPaid = false;
              
-             if (membershipResult.success && membershipResult.data.membership) {
-                 const membership = membershipResult.data.membership;
-                 if (membership.status === 'active') {
+             if (membershipResult.success) {
+                 const membership = membershipResult.data?.membership || membershipResult.membership || membershipResult.data;
+                 if (membership && membership.status === 'active') {
                      isPaid = true;
                  }
              }

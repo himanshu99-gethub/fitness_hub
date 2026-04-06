@@ -5,13 +5,7 @@ async function apiRegisterUser(userData) {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email: userData.email,
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                phone: userData.phone,
-                password: userData.password
-            })
+            body: JSON.stringify(userData)
         });
         return await response.json();
     } catch (error) {
@@ -109,18 +103,35 @@ async function apiVerifyOTP(email, otp) {
     }
 }
 
-async function apiCreateMembership(email, plan, price, duration = 30) {
+async function apiCreateMembership(emailOrData, plan, price, duration = 30) {
     try {
-        const startDate = new Date();
-        const endDate = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
+        let payload;
+        if (typeof emailOrData === 'object' && !plan) {
+            payload = {
+                email: emailOrData.email,
+                plan: emailOrData.plan || emailOrData.planName || emailOrData.type,
+                price: emailOrData.price || emailOrData.amount,
+                duration: emailOrData.duration || 30,
+                startDate: emailOrData.startDate || new Date().toISOString(),
+                endDate: emailOrData.endDate || new Date(Date.now() + (emailOrData.duration || 30) * 24 * 60 * 60 * 1000).toISOString()
+            };
+        } else {
+            const startDate = new Date();
+            const endDate = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
+            payload = {
+                email: emailOrData,
+                plan,
+                price,
+                duration,
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString()
+            };
+        }
+
         const response = await fetch(`${API_BASE_URL}/membership/create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email, plan, price,
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString()
-            })
+            body: JSON.stringify(payload)
         });
         return await response.json();
     } catch (error) {

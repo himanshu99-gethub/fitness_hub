@@ -84,8 +84,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             );
             
             if (!isPaid) {
-                console.log('⚠️ Payment not complete (Status: ' + (user?.membership_status || 'none') + ') - redirecting to membership page');
-                window.location.href = 'membership.html';
+                console.log('⚠️ Payment not complete (Status: ' + (user?.membership_status || 'none') + ') - redirecting to payment page');
+                window.location.href = 'payment.html';
                 return;
             }
 
