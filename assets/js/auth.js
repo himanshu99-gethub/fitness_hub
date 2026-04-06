@@ -269,38 +269,15 @@ function saveStepData(step) {
 // PLAN SELECTION
 // ============================================
 
-function selectPlan(planType, element) {
-    const plans = {
-        starter:      { name: 'Starter Pack',   price: 999  },
-        professional: { name: 'Professional',   price: 1999 },
-        elite:        { name: 'Elite Plus',      price: 2999 }
-    };
-
-    selectedPlan = { type: planType, ...plans[planType] };
-
-    document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
-    element.classList.add('selected');
-
-    const info = document.getElementById('selectedPlanInfo');
-    if (info) info.innerHTML = `<strong>Selected Plan:</strong> ${selectedPlan.name} — ₹${selectedPlan.price}/month`;
-
-    const sp = document.getElementById('summaryPlan');
-    const sa = document.getElementById('summaryAmount');
-    const ta = document.getElementById('totalAmount');
-    if (sp) sp.textContent = `${selectedPlan.name} (Monthly)`;
-    if (sa) sa.textContent = `₹${selectedPlan.price}`;
-    if (ta) ta.textContent = `₹${selectedPlan.price}`;
-}
-
 // ============================================
-// MEMBERSHIP SELECTION (Step 3)
+// PLAN SELECTION
 // ============================================
 
 function selectPlan(planId) {
     const plans = {
-        'basic': { id: 'basic', name: 'Starter Pack', price: 999, duration: 'month' },
-        'professional': { id: 'professional', name: 'Professional', price: 1999, duration: 'month' },
-        'elite': { id: 'elite', name: 'Elite Plus', price: 2999, duration: 'month' }
+        'starter':      { id: 'starter',      name: 'Starter Pack',   price: 999,  duration: 'month' },
+        'professional': { id: 'professional', name: 'Professional',   price: 1999, duration: 'month' },
+        'elite':        { id: 'elite',        name: 'Elite Plus',      price: 2999, duration: 'month' }
     };
 
     selectedPlan = plans[planId];
@@ -308,7 +285,8 @@ function selectPlan(planId) {
     // Update UI highlights
     document.querySelectorAll('.plan-option').forEach(opt => {
         opt.classList.remove('selected');
-        if (opt.getAttribute('onclick')?.includes(`'${planId}'`)) {
+        // Matches both single ('id') and double ("id") quotes in onclick
+        if (opt.getAttribute('onclick')?.includes(`'${planId}'`) || opt.getAttribute('onclick')?.includes(`"${planId}"`)) {
             opt.classList.add('selected');
         }
     });
@@ -327,6 +305,14 @@ function selectPlan(planId) {
         `;
         infoBox.style.display = 'block';
     }
+
+    // Also update Step 4 Summary (for immediate feedback)
+    const summaryPlan = document.getElementById('summaryPlan');
+    const summaryAmount = document.getElementById('summaryAmount');
+    const totalAmount = document.getElementById('totalAmount');
+    if (summaryPlan) summaryPlan.textContent = `${selectedPlan.name} (Monthly)`;
+    if (summaryAmount) summaryAmount.textContent = `₹${selectedPlan.price}`;
+    if (totalAmount) totalAmount.textContent = `₹${selectedPlan.price}`;
 }
 
 // ============================================
