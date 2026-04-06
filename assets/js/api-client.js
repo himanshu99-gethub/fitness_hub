@@ -1,8 +1,4 @@
-const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000/api'
-    : window.location.hostname === '127.0.0.1'
-    ? 'http://127.0.0.1:5000/api'
-    : 'https://gym-fitness-production-c08e.up.railway.app/api'; 
+const API_BASE_URL = window.location.origin + '/api'; 
 
 async function apiRegisterUser(userData) {
     try {
@@ -43,6 +39,31 @@ async function apiLoginUser(email, password) {
     } catch (error) {
         console.error('❌ Login error:', error);
         return { success: false, error: error.message };
+    }
+}
+
+async function apiGetProfile() {
+    try {
+        const user = JSON.parse(localStorage.getItem('fitnesshub_user'));
+        if (!user || (!user.email && !user.user_email)) {
+            return { success: false, message: 'User data missing' };
+        }
+        
+        const email = user.email || user.user_email;
+        const response = await fetch(`${API_BASE_URL}/auth/profile/${encodeURIComponent(email)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch profile');
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('❌ Profile fetch error:', error);
+        return { success: false, message: error.message };
     }
 }
 
@@ -252,7 +273,7 @@ async function apiLogoutUser(email) {
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
-        apiRegisterUser, apiLoginUser, apiGenerateOTP, apiVerifyOTP,
+        apiRegisterUser, apiLoginUser, apiGetProfile, apiGenerateOTP, apiVerifyOTP,
         apiCreateMembership, apiGetActiveMembership, apiGetMembershipHistory,
         apiCreatePayment, apiGetPaymentHistory, apiGetTotalRevenue,
         apiHealthCheck, apiValidateSession, apiLogoutUser

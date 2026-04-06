@@ -9,7 +9,8 @@ dotenv.config();
 // Supabase initialization
 const { 
   createUser, findUserByEmail, generateOTP, verifyOTP, 
-  createMembership, getUserActiveMembership, createPayment, getUserPayments 
+  createMembership, getUserActiveMembership, createPayment, getUserPayments,
+  getAllUsers, deleteUser
 } = require('./functions/supabaseHelpers');
 
 const app = express();
@@ -58,6 +59,23 @@ app.post('/api/auth/login', async (req, res) => {
             } else {
                 res.status(401).json({ success: false, error: 'Invalid password' });
             }
+        } else {
+            res.status(404).json({ success: false, error: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Profile Route
+app.get('/api/auth/profile/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        const result = await findUserByEmail(email);
+        if (result.success && result.user) {
+            // Remove password before sending
+            const { password, ...userProfile } = result.user;
+            res.json({ success: true, user: userProfile });
         } else {
             res.status(404).json({ success: false, error: 'User not found' });
         }
@@ -147,6 +165,33 @@ app.get('/api/payment/history/:email', async (req, res) => {
             res.json({ success: true, payments: result.payments, count: result.payments.length });
         } else {
             res.status(404).json({ success: false, error: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        const result = await getAllUsers();
+        if (result.success) {
+            res.json({ success: true, users: result.users });
+        } else {
+            res.status(400).json(result);
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.delete('/api/admin/user/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await deleteUser(id);
+        if (result.success) {
+            res.json({ success: true, message: 'User deleted and account purged successfully' });
+        } else {
+            res.status(400).json(result);
         }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

@@ -255,9 +255,54 @@ async function verifyOTP(email, otp) {
   }
 }
 
+// ==================== ADMIN OPERATIONS ====================
+
+async function getAllUsers() {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, users: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+async function deleteUser(userId) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
+  try {
+    // Delete payments first (foreign key constraint)
+    const { error: pError } = await supabase.from('payments').delete().eq('user_id', userId);
+    // Delete memberships
+    const { error: mError } = await supabase.from('memberships').delete().eq('user_id', userId);
+    
+    // Delete user
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
-  createUser, findUserByEmail, updateUserProfile,
-  createMembership, getUserActiveMembership,
-  createPayment, getUserPayments,
-  generateOTP, verifyOTP
+  createUser,
+  findUserByEmail,
+  updateUserProfile,
+  createMembership,
+  getUserActiveMembership,
+  createPayment,
+  getUserPayments,
+  generateOTP,
+  verifyOTP,
+  getAllUsers,
+  deleteUser
 };

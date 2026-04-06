@@ -505,16 +505,122 @@ function loadNotifications() {
 }
 
 // ============================================
-// MEMBERSHIP UPGRADE
+// MEMBERSHIP UPGRADE - Dashboard Integration
 // ============================================
 
+const membershipPlansOnDashboard = [
+    {
+        id: 'basic',
+        name: 'Basic Plan',
+        price: 29,
+        period: 'month',
+        features: ['Full gym access', 'Standard locker room', 'All machines access', 'One fitness assessment'],
+        color: 'primary',
+        icon: 'dumbbell'
+    },
+    {
+        id: 'pro',
+        name: 'Pro Plan',
+        price: 59,
+        period: 'month',
+        features: ['Full gym access', 'All group classes', 'Free sauna access', 'Personal trainer (1 session)', 'Pool & Spa access'],
+        color: 'success',
+        icon: 'medal',
+        popular: true
+    },
+    {
+        id: 'elite',
+        name: 'Elite Plan',
+        price: 99,
+        period: 'month',
+        features: ['All Pro features', 'Unlimited PT sessions', 'Weekly diet consultation', 'Specialized workshops', 'Exclusive VIP lounge'],
+        color: 'dark',
+        icon: 'crown'
+    }
+];
+
+let currentSelectedPlanId = null;
+
 function upgradeMembership() {
-    // Show membership selection section where user can choose higher tier
-    showMembershipPlan();
+    // Hide dashboard sections and show selection
+    document.getElementById('membershipSelectionSection').classList.remove('section-hidden');
+    
+    // Auto scroll to it
+    document.getElementById('membershipSelectionSection').scrollIntoView({ behavior: 'smooth' });
+    
+    renderMembershipPlansOnDashboard();
+}
+
+function renderMembershipPlansOnDashboard() {
+    const grid = document.getElementById('membershipPlansGridOnDashboard');
+    if (!grid) return;
+    
+    grid.innerHTML = membershipPlansOnDashboard.map(plan => `
+        <div class="col-md-4 mb-4">
+            <div class="plan-card ${plan.popular ? 'popular' : ''} ${currentSelectedPlanId === plan.id ? 'selected' : ''}" 
+                 onclick="selectMembershipPlanOnDashboard('${plan.id}')"
+                 style="cursor: pointer; transition: transform 0.2s; border: 2px solid ${currentSelectedPlanId === plan.id ? 'var(--fitness-success)' : 'transparent'};">
+                <div class="card-body p-4">
+                    ${plan.popular ? '<span class="badge bg-success mb-2">Most Popular</span>' : ''}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="plan-icon me-3">
+                            <i class="fas fa-${plan.icon} fa-2x text-${plan.color}"></i>
+                        </div>
+                        <h4 class="mb-0">${plan.name}</h4>
+                    </div>
+                    <div class="plan-price mb-3">
+                        <span class="currency">$</span>
+                        <span class="amount">${plan.price}</span>
+                        <span class="period">/${plan.period}</span>
+                    </div>
+                    <ul class="list-unstyled mb-4">
+                        ${plan.features.map(f => `<li class="mb-2"><i class="fas fa-check text-success me-2"></i> ${f}</li>`).join('')}
+                    </ul>
+                    <button class="btn ${currentSelectedPlanId === plan.id ? 'btn-success' : 'btn-outline-success'} w-100">
+                        ${currentSelectedPlanId === plan.id ? 'Selected' : 'Choose Plan'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function selectMembershipPlanOnDashboard(planId) {
+    currentSelectedPlanId = planId;
+    const plan = membershipPlansOnDashboard.find(p => p.id === planId);
+    
+    // Update local user data temporary
+    const user = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    if (user) {
+        user.selectedPlan = planId;
+        user.planPrice = plan.price;
+        localStorage.setItem('fitnesshub_user', JSON.stringify(user));
+    }
+    
+    // Refresh the grid to show selection
+    renderMembershipPlansOnDashboard();
+    
+    // Show payment section
+    document.getElementById('paymentSection').classList.remove('section-hidden');
+    document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth' });
+    
+    // Pre-fill amount in payment if there's a field
+    const amountField = document.getElementById('paymentAmount');
+    if (amountField) amountField.value = plan.price;
+}
+
+// Payment flow cleanup
+function proceedToPaymentFromDashboard() {
+    if (!currentSelectedPlanId) {
+        alert('Please select a plan first');
+        return;
+    }
+    document.getElementById('paymentSection').classList.remove('section-hidden');
+    document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth' });
 }
 
 // ============================================
-// PAYMENT WINDOW - Shows before dashboard
+// PAYMENT WINDOW - Logic
 // ============================================
 
 function showPaymentWindow() {

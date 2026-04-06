@@ -109,46 +109,48 @@ document.addEventListener('DOMContentLoaded', () => {
 // LOAD ALL USERS
 // ============================================
 
-function loadAllUsers() {
-    // Try Supabase first, then fall back to localStorage
-    if (typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
-        console.log('📱 Loading users from Supabase...');
-        getUsers()
-            .then(users => {
-                if (users && users.length > 0) {
-                    allUsers = users.map(u => ({
-                        email: u.email,
-                        fullName: u.full_name,
-                        phone: u.phone,
-                        age: u.age,
-                        gender: u.gender,
-                        height: u.height,
-                        weight: u.weight,
-                        goal: u.fitness_goal,
-                        experience: u.experience,
-                        registrationDate: u.registration_date,
-                        plan: u.plan_type
-                    }));
-                    console.log('✅ Loaded from Supabase:', allUsers.length, 'users');
-                    
-                    // Also sync to localStorage for offline access
-                    localStorage.setItem('fitnesshub_registered_users', JSON.stringify(allUsers));
-                    console.log('✅ Synced to localStorage');
-                } else {
-                    allUsers = [];
-                    console.log('ℹ️ No users in Supabase yet');
-                }
-                displayUsers();
-            })
-            .catch(err => {
-                console.warn('⚠️ Supabase load failed, using localStorage:', err);
-                loadFromLocalStorage();
-                displayUsers();
-            });
-    } else {
-        console.log('ℹ️ Supabase not configured, loading from localStorage');
-        loadFromLocalStorage();
+async function loadAllUsers() {
+    console.log('🔄 Fetching users from backend API...');
+    try {
+        const response = await fetch('/api/admin/users');
+        const result = await response.json();
+        
+        if (result.success && result.users) {
+            allUsers = result.users;
+            console.log(`✅ Successfully loaded ${allUsers.length} users from Supabase`);
+            displayUsers();
+            updateStatistics();
+        } else {
+            throw new Error(result.error || 'Unknown API error');
+        }
+    } catch (error) {
+        console.warn('⚠️ API fetch failed, falling back to localStorage:', error);
+        allUsers = getMergedUsers();
         displayUsers();
+        updateStatistics();
+    }
+}
+
+async function purgeUser(userId) {
+    if (!confirm('🚨 CRITICAL ACTION: Are you sure you want to PERMANENTLY PURGE this account? \n\nThis will delete all User data, Payment history, and Membership records from the database. This action CANNOT be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/user/${userId}`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('✅ Account fully purged and deleted successfully.');
+            loadAllUsers(); // Reload the list from backend
+        } else {
+            alert('❌ Failed to purge account: ' + (result.error || 'Server error'));
+        }
+    } catch (err) {
+        console.error('Error purging user:', err);
+        alert('❌ Error communicating with server. Check console for details.');
     }
 }
 
@@ -250,9 +252,16 @@ function displayUsers() {
                         <i class="fas fa-book"></i> Experience: ${userData?.experience || 'N/A'}
                     </small>
                 </div>
-                <button class="btn-manage" onclick="openEditUserModal('${user.email}')">
-                    <i class="fas fa-edit"></i> Manage
-                </button>
+                <div class="d-flex flex-column gap-2">
+                    <button class="btn-manage" onclick="openEditUserModal('${user.email}')">
+                        <i class="fas fa-edit"></i> Manage
+                    </button>
+                    ${user.id ? `
+                    <button class="btn btn-sm btn-outline-danger" onclick="purgeUser('${user.id}')" title="Permanently delete this account from Supabase">
+                        <i class="fas fa-trash-alt"></i> Purge
+                    </button>
+                    ` : ''}
+                </div>
             </div>
         `;
         container.appendChild(userCard);

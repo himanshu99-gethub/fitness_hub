@@ -46,7 +46,7 @@ function loadPaymentSummary() {
     
     if (!userData || !userData.selectedPlan) {
         console.error('❌ No plan selected');
-        window.location.href = 'membership.html';
+        window.location.href = 'dashboard.html';
         return;
     }
 

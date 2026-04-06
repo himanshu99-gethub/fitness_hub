@@ -368,65 +368,78 @@ async function completeRegistration() {
         completeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
     }
 
-    // Build user record
-    const now = new Date();
-    const membershipEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    try {
+        // 1. Register User on Server
+        const regResult = await apiRegisterUser({
+            email: userFormData.email,
+            name: userFormData.fullName,
+            phone: userFormData.phone,
+            password: userFormData.password,
+            age: parseInt(userFormData.age),
+            gender: userFormData.gender,
+            height: parseFloat(userFormData.height),
+            weight: parseFloat(userFormData.weight),
+            goal: userFormData.goal,
+            experience: userFormData.experience
+        });
 
-    const userRecord = {
-        fullName:         userFormData.fullName,
-        email:            userFormData.email,
-        phone:            userFormData.phone,
-        password:         userFormData.password,
-        age:              parseInt(userFormData.age),
-        gender:           userFormData.gender,
-        height:           parseFloat(userFormData.height),
-        weight:           parseFloat(userFormData.weight),
-        goal:             userFormData.goal,
-        experience:       userFormData.experience,
-        selectedPlan:     { type: selectedPlan.type, name: selectedPlan.name, price: selectedPlan.price },
-        registrationDate: now.toISOString(),
-        membershipStart:  now.toISOString(),
-        membershipEnd:    membershipEnd.toISOString(),
-        profileCompleted: true,
-        isPaid:           false,
-        paymentStatus:    'pending',
-        isActive:         true,
-        isDeleted:        false,
-        userId:           'user_' + Date.now()
-    };
+        if (!regResult.success) {
+            throw new Error(regResult.error || 'Registration failed');
+        }
 
-    // Save user
-    saveUser(userRecord);
+        const userRecord = regResult.data.user;
 
-    // Create local session
-    localStorage.setItem(KEY_SESSION, JSON.stringify({
-        email:      userRecord.email,
-        loginTime:  now.toISOString(),
-        rememberMe: true,
-        otpVerified: true
-    }));
+        // 2. Create Membership on Server
+        const memResult = await apiCreateMembership(
+            userRecord.email,
+            selectedPlan.type,
+            selectedPlan.price,
+            30 // 30 days
+        );
 
-    // Show success step
-    const successEmail = document.getElementById('successEmail');
-    const successPlan  = document.getElementById('successPlan');
-    if (successEmail) successEmail.textContent = userRecord.email;
-    if (successPlan)  successPlan.textContent  = selectedPlan.name;
+        if (!memResult.success) {
+            console.warn('Membership creation failed, but user was registered:', memResult.error);
+        }
 
-    currentStep = 4;
-    updateFormView();
+        // 3. Create Local Session
+        localStorage.setItem(KEY_SESSION, JSON.stringify({
+            email:      userRecord.email,
+            loginTime:  new Date().toISOString(),
+            rememberMe: true,
+            otpVerified: true
+        }));
 
-    userFormData = {};
+        localStorage.setItem(KEY_USER, JSON.stringify(userRecord));
 
-    setTimeout(() => {
-        window.location.replace('payment.html');
-    }, 3000);
+        // 4. Show success step
+        const successEmail = document.getElementById('successEmail');
+        const successPlan  = document.getElementById('successPlan');
+        if (successEmail) successEmail.textContent = userRecord.email;
+        if (successPlan)  successPlan.textContent  = selectedPlan.name;
+
+        currentStep = 4;
+        updateFormView();
+
+        userFormData = {};
+
+        setTimeout(() => {
+            window.location.replace('payment.html');
+        }, 3000);
+
+    } catch (error) {
+        showAlert(error.message, 'error');
+        if (completeBtn) {
+            completeBtn.disabled = false;
+            completeBtn.innerHTML = 'Complete Registration';
+        }
+    }
 }
 
 // ============================================
 // LOGIN FUNCTIONALITY
 // ============================================
 
-function handleLogin() {
+async function handleLogin() {
     const email    = document.getElementById('loginEmail')?.value.trim();
     const password = document.getElementById('loginPassword')?.value;
     const rememberMe = document.getElementById('rememberMe')?.checked;
@@ -440,30 +453,20 @@ function handleLogin() {
         return;
     }
 
-    showAlert('Verifying credentials...', 'info');
+    const loginBtn = document.querySelector('.btn-login');
+    if (loginBtn) {
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+    }
 
-    setTimeout(() => {
-        // Securely find user and ensure they exist in primary database
-        const user = findUser(email);
-
-        if (!user) {
-            showAlert('No account found with this email. Please register first.', 'error');
-            return;
+    try {
+        const result = await apiLoginUser(email, password);
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Login failed');
         }
 
-        if (user.password !== password) {
-            showAlert('Incorrect password. Please try again.', 'error');
-            return;
-        }
-
-        // MIGRATION: Ensure user is saved in Primary Object Database (fitnesshub_database)
-        try {
-            const db = getDatabase();
-            db[email.toLowerCase()] = user;
-            saveDatabase(db);
-        } catch (e) {
-            console.warn('Migration failed but proceeding:', e);
-        }
+        const user = result.data.user;
 
         // Save session
         localStorage.setItem(KEY_SESSION, JSON.stringify({
@@ -476,38 +479,34 @@ function handleLogin() {
         // Always sync the user profile to KEY_USER for the current session
         localStorage.setItem(KEY_USER, JSON.stringify(user));
 
-        setTimeout(() => {
-            // HIGH-RELIABILITY PAYMENT CHECK
-            // 1. Check direct flags
-            let isPaid = user.isPaid === true || 
-                         user.paymentStatus === 'completed' || 
-                         user.paymentStatus === 'paid';
-            
-            // 2. Check payment history as a bulletproof fallback
-            if (!isPaid) {
-                try {
-                    const history = JSON.parse(localStorage.getItem('fitnesshub_payment_history') || '[]');
-                    // Find any completed payment in history
-                    const hasPaidHistory = history.some(p => 
-                        (p.status === 'completed' || p.status === 'paid') && 
-                        (p.email === user.email || !p.email) // Support older history without email too
-                    );
-                    if (hasPaidHistory) {
-                        isPaid = true;
-                        console.log('✅ Found payment in history - granting access');
-                    }
-                } catch (e) { console.warn('History check failed:', e); }
-            }
+        showAlert('Login successful! Redirecting...', 'success');
+
+        setTimeout(async () => {
+             // Check membership status from server
+             const membershipResult = await apiGetActiveMembership(user.email);
+             let isPaid = false;
+             
+             if (membershipResult.success && membershipResult.data.membership) {
+                 const membership = membershipResult.data.membership;
+                 if (membership.status === 'active') {
+                     isPaid = true;
+                 }
+             }
 
             if (isPaid) {
-                console.log('✅ User is validated as PAID - going to dashboard');
                 window.location.href = 'dashboard.html';
             } else {
-                console.log('❌ User is NOT paid - going to payment');
                 window.location.href = 'payment.html';
             }
         }, 1000);
-    }, 600);
+
+    } catch (error) {
+        showAlert(error.message, 'error');
+        if (loginBtn) {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+        }
+    }
 }
 
 // ============================================
