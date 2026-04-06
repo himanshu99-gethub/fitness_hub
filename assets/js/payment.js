@@ -26,7 +26,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // 3. Get Selected Plan from temp storage or Server
             let savedPlan = localStorage.getItem('fitnesshub_selected_plan');
-            if (!savedPlan) {
+            if (savedPlan) {
+                currentPlan = JSON.parse(savedPlan);
+                
+                // If it's a fresh selection, we need to create it on the server first
+                if (!currentPlan.id) {
+                    console.log('📝 Creating server-side membership record...');
+                    const createRes = await apiCreateMembership({
+                        email: currentUser.email,
+                        plan: currentPlan.type || currentPlan.name,
+                        amount: currentPlan.price,
+                        duration: 30
+                    });
+                    
+                    if (createRes.success) {
+                        const newMem = createRes.membership || createRes.data?.membership || createRes.data;
+                        currentPlan.id = newMem.id;
+                        // Update local storage so we don't recreate it on refresh
+                        localStorage.setItem('fitnesshub_selected_plan', JSON.stringify(currentPlan));
+                    } else {
+                        throw new Error('Failed to synchronize plan with server: ' + (createRes.error || createRes.message));
+                    }
+                }
+            } else {
                 console.log('🔄 No plan in local storage, checking server for pending membership...');
                 const memResponse = await apiGetLatestMembership(currentUser.email);
                 const mem = memResponse.membership || memResponse.data?.membership || memResponse.data;
@@ -43,8 +65,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.location.href = 'membership.html';
                     return;
                 }
-            } else {
-                currentPlan = JSON.parse(savedPlan);
             }
             
             // 4. Populate UI
@@ -193,26 +213,28 @@ async function processPayment(e) {
         // Simulation delay
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Use api-client activate instead of local fetch
-        const activationData = {
-            userId: currentUser.id,
-            membershipId: currentPlan.id
-        };
-
-        if (!activationData.membershipId) {
-             // Second attempt if ID was somehow missed (common when coming directly from registration)
+        // Ensure we have a membership ID before activation
+        if (!currentPlan.id) {
+             console.log('🔄 Membership ID missing, trying to recover from server...');
              const memFetch = await apiGetLatestMembership(currentUser.email);
              const mem = memFetch.membership || memFetch.data?.membership || memFetch.data;
              if (memFetch.success && mem && mem.id) {
-                 activationData.membershipId = mem.id;
+                 currentPlan.id = mem.id;
              }
         }
 
+        const activationData = {
+            userId: currentUser.id || currentUser.email,
+            membershipId: currentPlan.id
+        };
+        
         if (!activationData.userId || !activationData.membershipId) {
-            throw new Error('Unable to identify user or membership for activation. Try refreshing.');
+            console.error('Missing ID details:', { userId: activationData.userId, memId: activationData.membershipId });
+            throw new Error('Verification Error: Unable to link payment to your account. Please refresh and try again.');
         }
-
-        const response = await apiActivateMembership(activationData);
+        
+        // Use api-client activate instead of local fetch
+        const response = await apiActivateMembership(activationData.userId, activationData.membershipId);
 
         if (response.success) {
             // Also update local storage if needed
