@@ -73,6 +73,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => {
             const user = window.dashboardState.userProfile;
             
+            const isPaid = user && (
+                user.membership_status === 'active' || 
+                user.isPaid === true || 
+                user.paymentStatus === 'completed' || 
+                user.paymentStatus === 'paid' ||
+                user.status === 'active'
+            );
+            
+            if (!isPaid) {
+                console.log('⚠️ Payment not complete or membership inactive - blocking access');
+                alert('You need an active membership to access the dashboard. Please contact administrator.');
+                localStorage.removeItem('fitnesshub_session');
+                window.location.href = 'index.html';
+                return;
+            }
+            
             checkProfileCompletion();
             loadPaymentHistory();
         }, 200);
