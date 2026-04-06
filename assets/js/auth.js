@@ -293,6 +293,43 @@ function selectPlan(planType, element) {
 }
 
 // ============================================
+// MEMBERSHIP SELECTION (Step 3)
+// ============================================
+
+function selectPlan(planId) {
+    const plans = {
+        'basic': { id: 'basic', name: 'Starter Pack', price: 999, duration: 'month' },
+        'professional': { id: 'professional', name: 'Professional', price: 1999, duration: 'month' },
+        'elite': { id: 'elite', name: 'Elite Plus', price: 2999, duration: 'month' }
+    };
+
+    selectedPlan = plans[planId];
+
+    // Update UI highlights
+    document.querySelectorAll('.plan-option').forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.getAttribute('onclick')?.includes(`'${planId}'`)) {
+            opt.classList.add('selected');
+        }
+    });
+
+    // Show selection info
+    const infoBox = document.getElementById('selectedPlanInfo');
+    if (infoBox) {
+        infoBox.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="mb-0">Selected: <strong>${selectedPlan.name}</strong></h6>
+                    <small>₹${selectedPlan.price} / ${selectedPlan.duration}</small>
+                </div>
+                <div class="badge bg-success">Selected</div>
+            </div>
+        `;
+        infoBox.style.display = 'block';
+    }
+}
+
+// ============================================
 // REGISTRATION COMPLETION (localStorage only)
 // ============================================
 
@@ -818,8 +855,45 @@ function finalizePayment() {
 }
 
 // ============================================
-// UTILITY FUNCTIONS
+// UTILITY FUNCTIONS & ALERTS
 // ============================================
+
+function showAlert(message, type = 'info') {
+    // 1. Try to find local alert containers
+    let container = document.getElementById('alertContainer') || 
+                    document.getElementById('otpAlertContainer') ||
+                    document.getElementById('resetAlertContainer');
+
+    // 2. Fallback: if no container, place at top of first .container or body
+    if (!container) {
+        container = document.querySelector('.container') || document.body;
+    }
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.style.zIndex = '9999';
+    alertDiv.style.marginTop = '10px';
+    
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    if (container.firstChild) {
+        container.insertBefore(alertDiv, container.firstChild);
+    } else {
+        container.appendChild(alertDiv);
+    }
+    
+    // Auto remove
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.classList.remove('show');
+            setTimeout(() => alertDiv.remove(), 500);
+        }
+    }, 5000);
+}
 
 function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
