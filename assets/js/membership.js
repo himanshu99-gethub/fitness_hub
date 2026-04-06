@@ -52,27 +52,42 @@ let selectedPlan = null;
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🏋️ Membership page loaded');
     
-    // Validate session with server (for cross-device sync)
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    // Validate session locally (offline-first)
     const sessionData = localStorage.getItem('fitnesshub_session');
-    
-    if (sessionData) {
-        try {
-            const session = JSON.parse(sessionData);
-            const serverStatus = await apiValidateSession(session.email);
-            if (!serverStatus.isAuthenticated) {
-                console.log('⚠️ Session expired - redirecting to login');
-                localStorage.removeItem('fitnesshub_session');
-                localStorage.removeItem('fitnesshub_user');
-                window.location.href = 'login.html';
-                return;
+    if (!sessionData) {
+        console.log('⚠️ No session found - redirecting to login');
+        localStorage.removeItem('fitnesshub_session');
+        localStorage.removeItem('fitnesshub_user');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Load user info
+    loadUserInfo();
+
+    // SELF-CORRECTION: Re-verify against primary database (fitnesshub_database)
+    try {
+        const session = JSON.parse(localStorage.getItem('fitnesshub_session'));
+        if (session && session.email) {
+            const userDb = JSON.parse(localStorage.getItem('fitnesshub_database') || '{}');
+            const latestUserRecord = userDb[session.email.toLowerCase()];
+            
+            if (latestUserRecord) {
+                const isActuallyPaid = latestUserRecord.isPaid === true || latestUserRecord.paymentStatus === 'completed' || latestUserRecord.paymentStatus === 'paid';
+                
+                if (isActuallyPaid) {
+                    console.log('🔄 Self-correction: Found active membership in database. Updating session...');
+                    localStorage.setItem('fitnesshub_user', JSON.stringify(latestUserRecord));
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
             }
-        } catch (error) {
-            console.error('Error validating session:', error);
         }
+    } catch (err) {
+        console.warn('⚠️ Self-correction check failed:', err);
     }
     
-    loadUserInfo();
+    // Load plans
     loadMembershipPlans();
 });
 
@@ -96,19 +111,31 @@ function loadUserInfo() {
     document.getElementById('displayAgeGender').textContent = ageGender;
 }
 
-// ============================================
-// LOAD MEMBERSHIP PLANS
-// ============================================
-
 function loadMembershipPlans() {
     const container = document.getElementById('membershipPlans');
+    if (!container) return;
     container.innerHTML = '';
+
+    const userData = JSON.parse(localStorage.getItem('fitnesshub_user')) || {};
+    const currentUserPlan = userData.plan?.type || '';
+    const isPaid = userData.isPaid === true || userData.paymentStatus === 'completed' || userData.paymentStatus === 'paid';
+    const isNotExpired = userData.membershipEnd && new Date() < new Date(userData.membershipEnd);
+    const activePlan = (isPaid && isNotExpired) ? currentUserPlan : null;
 
     membershipPlans.forEach(plan => {
         const planCard = document.createElement('div');
         planCard.className = 'plan-card';
         planCard.id = `plan-${plan.type}`;
-        planCard.style.cursor = 'pointer';
+        
+        const isCurrentActive = plan.type === activePlan;
+        if (isCurrentActive) {
+            planCard.classList.add('current-active');
+            planCard.style.cursor = 'default';
+            planCard.style.opacity = '0.7';
+            planCard.style.border = '2px solid #22d3ee';
+        } else {
+            planCard.style.cursor = 'pointer';
+        }
 
         const featuresList = plan.features
             .map(feature => `<li><i class="fas fa-check"></i> ${feature}</li>`)
@@ -117,6 +144,7 @@ function loadMembershipPlans() {
         planCard.innerHTML = `
             <span class="plan-emoji">${plan.emoji}</span>
             <div class="plan-name">${plan.name}</div>
+            ${isCurrentActive ? '<div class="active-badge" style="background:#22d3ee; color:#0f172a; padding:2px 8px; border-radius:12px; font-size:0.7rem; margin-bottom:5px; display:inline-block; font-weight:bold;">YOUR CURRENT PLAN</div>' : ''}
             <div class="plan-price">₹${plan.price}</div>
             <div class="plan-duration">${plan.duration}</div>
             <ul class="plan-features">
@@ -124,7 +152,9 @@ function loadMembershipPlans() {
             </ul>
         `;
 
-        planCard.addEventListener('click', () => selectPlan(plan));
+        if (!isCurrentActive) {
+            planCard.addEventListener('click', () => selectPlan(plan));
+        }
         container.appendChild(planCard);
     });
 }
@@ -184,10 +214,12 @@ function proceedToPayment() {
 // ============================================
 
 function logout(event) {
-    event.preventDefault();
+    if (event) event.preventDefault();
+    console.log('🔄 Membership logout/back initiated...');
     if (confirm('⚠️ Are you sure you want to go back? Your plan selection will be cleared.')) {
         localStorage.removeItem('fitnesshub_session');
         localStorage.removeItem('fitnesshub_user');
         window.location.href = 'login.html';
     }
 }
+window.logout = logout;

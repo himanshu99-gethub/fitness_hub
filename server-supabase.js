@@ -6,12 +6,11 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
-// Firebase initialization
-const { initializeFirebase, getFirebaseDB, admin } = require('./functions/firebase-config');
+// Supabase initialization
 const { 
   createUser, findUserByEmail, generateOTP, verifyOTP, 
   createMembership, getUserActiveMembership, createPayment, getUserPayments 
-} = require('./functions/firebaseHelpers');
+} = require('./functions/supabaseHelpers');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,11 +20,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Initialize Firebase
-initializeFirebase().catch(err => {
-    console.error('Failed to initialize Firebase:', err.message);
-});
-
 // ==============================================
 // API ROUTES
 // ==============================================
@@ -34,8 +28,8 @@ initializeFirebase().catch(err => {
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
-        message: 'Fitness Hub Server is running',
-        database: 'Firebase Realtime Database',
+        message: 'Fitness Hub Server is running (Supabase Edition)',
+        database: 'Supabase PostgreSQL',
         timestamp: new Date().toISOString()
     });
 });
@@ -159,15 +153,6 @@ app.get('/api/payment/history/:email', async (req, res) => {
     }
 });
 
-app.get('/api/payment/total-revenue', async (req, res) => {
-    try {
-        // Simple mock for total revenue
-        res.json({ success: true, totalRevenue: 50000 });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
 // Serve frontend pages
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'pages/login.html')));
@@ -177,14 +162,14 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'pages/regi
 app.listen(PORT, () => {
     console.log(`
 ╔════════════════════════════════════════╗
-║  🏋️  FITNESS HUB - FIREBASE SERVER   ║
+║  ⚡  FITNESS HUB - SUPABASE SERVER   ║
 ╚════════════════════════════════════════╝
 
 🚀 Server running on: http://localhost:${PORT}
 📂 Serving files from: ${__dirname}
-🔥 Firebase Database: ${process.env.FIREBASE_DATABASE_URL || 'Default URL'}
+⚡ Supabase URL: ${process.env.SUPABASE_URL}
 📍 API Base: http://localhost:${PORT}/api
 
-✅ Server is ready!
+✅ Supabase integration ready!
     `);
 });

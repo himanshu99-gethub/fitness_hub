@@ -7,24 +7,30 @@ let currentPaymentMethod = 'card';
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('💳 Payment page loaded');
     
-    // Validate session with server (for cross-device sync)
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    // Validate session locally (offline-first)
     const sessionData = localStorage.getItem('fitnesshub_session');
-    
-    if (sessionData) {
-        try {
-            const session = JSON.parse(sessionData);
-            const serverStatus = await apiValidateSession(session.email);
-            if (!serverStatus.isAuthenticated) {
-                console.log('⚠️ Session expired - redirecting to login');
-                localStorage.removeItem('fitnesshub_session');
-                localStorage.removeItem('fitnesshub_user');
-                window.location.href = 'login.html';
-                return;
-            }
-        } catch (error) {
-            console.error('Error validating session:', error);
+    if (!sessionData) {
+        console.log('⚠️ No session found - redirecting to login');
+        localStorage.removeItem('fitnesshub_session');
+        localStorage.removeItem('fitnesshub_user');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // HARD BLOCK: If any completed payment exists, redirect to dashboard
+    try {
+        const history = JSON.parse(localStorage.getItem('fitnesshub_payment_history') || '[]');
+        const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+        const hasAnyPaidPlan = history.some(p => (p.status === 'completed' || p.status === 'paid') && (p.email === userData.email || !p.email));
+        
+        if (hasAnyPaidPlan) {
+            console.log('✅ Found completed payment in history - blocking repeat purchase');
+            alert('Your payment for ' + (userData.plan?.name || 'this membership') + ' is already COMPLETED. Redirecting to your dashboard.');
+            window.location.href = 'dashboard.html';
+            return;
         }
+    } catch (e) {
+        console.warn('History block check failed:', e);
     }
     
     loadPaymentSummary();
@@ -172,10 +178,10 @@ function validatePaymentForm() {
 }
 
 // ============================================
-// PROCESS PAYMENT
+// PROCESS PAYMENT (Asynchronous)
 // ============================================
 
-function processPayment() {
+async function processPayment() {
     // Validate form
     if (!validatePaymentForm()) {
         return;
@@ -189,7 +195,7 @@ function processPayment() {
     const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
 
     // Simulate payment processing (2 seconds delay)
-    setTimeout(() => {
+    setTimeout(async () => {
         // Mark payment as complete
         userData.paymentStatus = 'completed';
         userData.isPaid = true;
@@ -211,25 +217,56 @@ function processPayment() {
         // Save updated user data
         localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
 
-        // Sync to Firebase - REMOVED local database sync
-        // TODO: Call Firebase API to sync payment
-        console.log('✅ Payment synced to cache (Firebase integration needed);
+        // Sync with primary object database (fitnesshub_database)
+        try {
+            const userDb = JSON.parse(localStorage.getItem('fitnesshub_database') || '{}');
+            if (userData.email && userDb[userData.email.toLowerCase()]) {
+                const currentUserRecord = userDb[userData.email.toLowerCase()];
+                userDb[userData.email.toLowerCase()] = {
+                    ...currentUserRecord,
+                    isPaid: true,
+                    paymentStatus: 'completed',
+                    paymentDate: userData.paymentDate,
+                    plan: userData.plan
+                };
+                localStorage.setItem('fitnesshub_database', JSON.stringify(userDb));
+                console.log('✅ Synchronized payment with primary database');
+            }
+        } catch (dbErr) {
+            console.warn('⚠️ Error syncing with primary database:', dbErr);
+        }
 
-// Rest of the function continues...
+        // Sync payment to backend via API
+        try {
+            console.log('🔄 Syncing payment for:', userData.email);
+            // Call API to complete payment/membership
+            const result = await apiCreateMembership(userData.email, userData.plan.name, userData.plan.price);
+            
+            if (result.success) {
+                console.log('✅ Payment completed and synced to backend');
+            } else {
+                console.log('⚠️ Backend sync failed (local payment saved):', result.error);
+            }
+
+            // Sync with registered users list locally (for admin panel support)
+            try {
+                const users = JSON.parse(localStorage.getItem('fitnesshub_registered_users') || '[]');
+                const userIndex = users.findIndex(u => u.email && u.email.toLowerCase() === userData.email.toLowerCase());
+                
+                if (userIndex !== -1) {
                     users[userIndex].paymentStatus = 'completed';
                     users[userIndex].paymentDate = userData.paymentDate;
-                    users[userIndex].plan = userData.plan;
-                    users[userIndex].phone = userData.phone;
-                    users[userIndex].fullName = userData.fullName;
-                    users[userIndex].age = userData.age;
-                    users[userIndex].gender = userData.gender;
-                    users[userIndex].email = userData.email;
+                    users[userIndex].isPaid = true;
+                    users[userIndex].plan = userData.plan.type;
                     localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
                     console.log('✅ User synced to admin list');
                 }
-            } catch (err) {
-                console.log('⚠️ Error syncing payment:', err);
+            } catch (syncErr) {
+                console.warn('⚠️ Admin list sync error:', syncErr);
             }
+
+        } catch (apiErr) {
+            console.error('❌ API sync failed:', apiErr);
         }
 
         console.log('✅ Payment completed successfully');

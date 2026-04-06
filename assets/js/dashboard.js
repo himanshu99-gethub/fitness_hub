@@ -48,55 +48,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log('🚀 Initializing dashboard...');
         
-        // Check for session (both locally and on server for cross-device sync)
-        let session = localStorage.getItem('fitnesshub_session');
-        let userData = JSON.parse(localStorage.getItem('fitnesshub_user') || 'null');
+        // Check for session locally (offline-first)
+        const session = localStorage.getItem('fitnesshub_session');
+        const userData = JSON.parse(localStorage.getItem('fitnesshub_user') || 'null');
         
-        if (!session && !userData) {
-            console.log('❌ No local session found - checking with server...');
-            // No local session, but maybe user has an active session on server
-            // Try to get from sessionStorage (temporary)
-            const tempEmail = sessionStorage.getItem('fitnesshub_temp_email');
-            if (tempEmail) {
-                const serverStatus = await apiValidateSession(tempEmail);
-                if (serverStatus.isAuthenticated) {
-                    console.log('✅ Found active session on server - sync to this device');
-                    userData = serverStatus.user;
-                    session = JSON.stringify({
-                        email: tempEmail,
-                        loginTime: new Date().toISOString(),
-                        rememberMe: true,
-                        otpVerified: true
-                    });
-                    localStorage.setItem('fitnesshub_session', session);
-                    localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
-                } else {
-                    console.log('❌ No active session found - redirecting to login');
-                    window.location.href = 'login.html';
-                    return;
-                }
-            } else {
-                console.log('❌ No session found - redirecting to login');
-                window.location.href = 'login.html';
-                return;
-            }
-        } else if (session && userData) {
-            console.log('✅ Found local session - validating with server...');
-            // Verify session is still valid on server
-            const sessionData = JSON.parse(session);
-            const serverStatus = await apiValidateSession(sessionData.email);
-            if (!serverStatus.isAuthenticated) {
-                console.log('⚠️ Session expired on server - redirecting to login');
-                localStorage.removeItem('fitnesshub_session');
-                localStorage.removeItem('fitnesshub_user');
-                window.location.href = 'login.html';
-                return;
-            }
-            console.log('✅ Session validated with server');
+        if (!session || !userData) {
+            console.log('❌ No valid local session found - redirecting to login');
+            window.location.href = 'login.html';
+            return;
         }
+
+        console.log('✅ Local session validated');
         
         // Initialize theme
-        initTheme();
+        // initTheme(); (Removed for Kinetic Brutalism)
         
         // Load all user data
         await loadUserData();
@@ -109,7 +74,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
             
             // If payment not complete, redirect to membership page
-            if (!userData || userData.isPaid !== true) {
+            const isPaid = userData && (userData.isPaid === true || userData.paymentStatus === 'completed' || userData.paymentStatus === 'paid');
+            if (!isPaid) {
                 console.log('⚠️ Payment not complete - redirecting to membership page');
                 window.location.href = 'membership.html';
                 return;
@@ -138,43 +104,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================
-// THEME SWITCHING
+// THEME SWITCHING (Removed for Kinetic Brutalism)
 // ============================================
-
-function initTheme() {
-    const savedTheme = localStorage.getItem('fitnesshub_theme') || 'dark';
-    currentTheme = savedTheme;
-    applyTheme(currentTheme);
-}
-
-function toggleTheme() {
-    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('fitnesshub_theme', currentTheme);
-    applyTheme(currentTheme);
-}
-
-function applyTheme(theme) {
-    const stylesheet = document.getElementById('themeStylesheet');
-    const themeBtn = document.getElementById('themeToggleBtn');
-    
-    if (theme === 'light') {
-        stylesheet.href = '../assets/css/dashboard-light-style.css';
-        if (themeBtn) {
-            themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
-            themeBtn.title = 'Switch to Dark Mode';
-            themeBtn.classList.remove('btn-outline-secondary');
-            themeBtn.classList.add('btn-warning');
-        }
-    } else {
-        stylesheet.href = '../assets/css/dashboard-style.css';
-        if (themeBtn) {
-            themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
-            themeBtn.title = 'Switch to Light Mode';
-            themeBtn.classList.remove('btn-warning');
-            themeBtn.classList.add('btn-outline-secondary');
-        }
-    }
-}
 
 // ============================================
 // LOAD USER DATA
@@ -182,7 +113,6 @@ function applyTheme(theme) {
 
 async function loadUserData() {
     try {
-        const userData = localStorage.getItem('fitnesshub_user');
         const sessionData = localStorage.getItem('fitnesshub_session');
 
         if (!sessionData) {
@@ -193,10 +123,25 @@ async function loadUserData() {
         const session = JSON.parse(sessionData);
         const userEmail = session.email;
         
-        if (userData) {
-            const user = JSON.parse(userData);
-            window.dashboardState.userProfile = user;
-            
+        // SYNC WITH PRIMARY DATABASE (fitnesshub_database)
+        const userDb = JSON.parse(localStorage.getItem('fitnesshub_database') || '{}');
+        const latestUserRecord = userDb[userEmail.toLowerCase()];
+        
+        if (latestUserRecord) {
+            // Update the session user with the latest database record
+            localStorage.setItem('fitnesshub_user', JSON.stringify(latestUserRecord));
+            window.dashboardState.userProfile = latestUserRecord;
+            console.log('🔄 Dashboard synced with primary database');
+        } else {
+            // Fallback to existing session user if database record missing
+            const userData = localStorage.getItem('fitnesshub_user');
+            if (userData) {
+                window.dashboardState.userProfile = JSON.parse(userData);
+            }
+        }
+
+        const user = window.dashboardState.userProfile;
+        if (user) {
             // Display actual user name (from registration)
             const displayName = user.fullName || userEmail.split('@')[0];
             document.getElementById('userName').textContent = displayName.split(' ')[0]; // First name only
@@ -310,6 +255,12 @@ async function loadUserData() {
                 const benefitsList = document.getElementById('benefitsList');
                 if (benefitsList) {
                     benefitsList.innerHTML = benefits.map(benefit => `<li>${benefit}</li>`).join('');
+                }
+
+                // Hide upgrade buttons if on Elite plan
+                if (planData.type === 'elite') {
+                    const upgradeBtns = document.querySelectorAll('button[onclick="upgradeMembership()"]');
+                    upgradeBtns.forEach(btn => btn.style.display = 'none');
                 }
             }
             
@@ -497,31 +448,40 @@ function loadDashboardData() {
     loadNotifications();
 }
 
-function loadWorkoutData() {
-    // Try to get assigned workout plan from Supabase
-    const assignments = window.userAssignments || {};
-    const assignedPlan = assignments.workoutPlan;
-
-    if (assignedPlan && typeof getWorkoutPlans === 'function' && typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
-        getWorkoutPlans()
-            .then(plans => {
-                const plan = plans.find(p => p.name === assignedPlan);
-                if (plan) {
-                    console.log('✅ Workout plan loaded from Supabase:', plan);
-                    localStorage.setItem(`cache_workout_plan_${assignedPlan}`, JSON.stringify(plan));
-                }
-            })
-            .catch(err => {
-                console.log('ℹ️ Using cached workout data:', err.message);
-            });
+const fitnessMockData = {
+    'starter': {
+        workout: { name: 'Basic Fitness Routine', level: 'Beginner', duration: '30 mins', exercises: 5 },
+        diet: { breakfast: 'Oatmeal', lunch: 'Salad with Paneer', snack: 'Fruit', dinner: 'Veggies & Rice', calories: 1500 }
+    },
+    'professional': {
+        workout: { name: 'Muscle Builder Pro', level: 'Intermediate', duration: '45 mins', exercises: 8 },
+        diet: { breakfast: 'Protein Porridge', lunch: 'Chicken/Soya & Brown Rice', snack: 'Nuts', dinner: 'Grilled Fish/Dal & Roti', calories: 2500 }
+    },
+    'elite': {
+        workout: { name: 'Ultimate Athlete Prep', level: 'Advanced', duration: '75 mins', exercises: 12 },
+        diet: { breakfast: 'Steak & Eggs / Tofu Scramble', lunch: 'High-Protein Grain Bowl', snack: 'Protein Shake', dinner: 'Lean Protein & Greens', calories: 3500 }
     }
+};
+
+function loadWorkoutData() {
+    const userData = JSON.parse(localStorage.getItem('fitnesshub_user')) || {};
+    const planType = userData.plan?.type || 'starter';
+    const mock = fitnessMockData[planType] || fitnessMockData['starter'];
+    
+    // Update daily workout card if it exists in dashboard
+    const workoutTitle = document.querySelector('.workout-details h6');
+    const workoutInfo = document.querySelector('.workout-details p');
+    const workoutExercises = document.querySelector('.workout-details small');
+    
+    if (workoutTitle) workoutTitle.textContent = mock.workout.name;
+    if (workoutInfo) workoutInfo.textContent = `${mock.workout.level} Level • ${mock.workout.duration}`;
+    if (workoutExercises) workoutExercises.textContent = `${mock.workout.exercises} exercises planned`;
 
     // Display default workout stats
     const workoutData = {
-        today: 0,
-        thisWeek: 4,
-        thisMonth: 12,
-        currentStreak: 3
+        today: planType === 'elite' ? 1 : 0,
+        thisWeek: planType === 'elite' ? 6 : 4,
+        thisMonth: planType === 'elite' ? 24 : 12
     };
 
     document.getElementById('workoutsDone').textContent = 
@@ -529,37 +489,14 @@ function loadWorkoutData() {
 }
 
 function loadDietData() {
-    // Try to get assigned diet plan from Supabase
-    const assignments = window.userAssignments || {};
-    const assignedDiet = assignments.dietPlan;
-
-    if (assignedDiet && typeof getDietPlans === 'function' && typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
-        getDietPlans()
-            .then(plans => {
-                const plan = plans.find(p => p.name === assignedDiet);
-                if (plan) {
-                    console.log('✅ Diet plan loaded from Supabase:', plan);
-                    localStorage.setItem(`cache_diet_plan_${assignedDiet}`, JSON.stringify(plan));
-                }
-            })
-            .catch(err => {
-                console.log('ℹ️ Using cached diet data:', err.message);
-            });
-    }
-
-    // Display default diet stats
-    const dietData = {
-        breakfastCals: 450,
-        lunchCals: 650,
-        snackCals: 200,
-        dinnerCals: 600,
-        totalTarget: 2200
-    };
-
-    const totalConsumed = dietData.breakfastCals + dietData.lunchCals + 
-                          dietData.snackCals + dietData.dinnerCals;
+    const userData = JSON.parse(localStorage.getItem('fitnesshub_user')) || {};
+    const planType = userData.plan?.type || 'starter';
+    const mock = fitnessMockData[planType] || fitnessMockData['starter'];
     
-    document.getElementById('caloriesBurned').textContent = totalConsumed + ' kcal';
+    // Update diet stats
+    if (document.getElementById('caloriesBurned')) {
+        document.getElementById('caloriesBurned').textContent = mock.diet.calories + ' kcal';
+    }
 }
 
 function loadNotifications() {
@@ -782,11 +719,6 @@ function completePaymentFromWindow(userData) {
     // Update in Firebase - REMOVED local database sync
     // TODO: Call Firebase API to sync payment status
     console.log('✅ Payment synced (Firebase integration needed)');
-            }
-        } catch (err) {
-            console.log('⚠️ Error syncing payment:', err);
-        }
-    }
 
     // Close modal and show dashboard
     const modal = bootstrap.Modal.getInstance(document.getElementById('paymentWindowModal'));
@@ -953,28 +885,9 @@ function completePayment(userData) {
 
     localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
 
-    // Update in Firebase - REMOVED local database sync
-    // TODO: Call Firebase API to sync data
-    console.log('✅ User data synced (Firebase integration needed)');
-
     // SYNC: Update registered users list for admin panel - REMOVED
     // Using Firebase only now
-            const users = JSON.parse(registeredUsers);
-            const userIndex = users.findIndex(u => u.email === userData.email);
-            if (userIndex >= 0) {
-                users[userIndex].isPaid = true;
-                users[userIndex].paymentStatus = 'completed';
-                users[userIndex].paymentDate = userData.paymentDate;
-                users[userIndex].plan = userData.plan;
-                users[userIndex].phone = userData.phone; // Sync phone too
-                users[userIndex].fullName = userData.fullName; // Sync name
-                localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
-                console.log('✅ Payment status synced to registered users list');
-            }
-        } catch (err) {
-            console.log('⚠️ Error syncing payment to registered users:', err);
-        }
-    }
+    console.log('✅ Payment status synced (Local Admin List sync removed)');
 
     // Hide payment section
     const paymentSection = document.getElementById('paymentSection');
@@ -1147,32 +1060,16 @@ function saveFillProfile() {
 // ============================================
 
 function logout() {
+    console.log('🔄 User logout initiated...');
     if (confirm('Are you sure you want to logout?')) {
-        // Get email from session
-        const session = localStorage.getItem('fitnesshub_session');
-        if (session) {
-            const sessionData = JSON.parse(session);
-            // Invalidate session on server (will logout on all devices)
-            apiLogoutUser(sessionData.email)
-                .then(result => {
-                    console.log('✅ Session invalidated on server');
-                })
-                .catch(error => {
-                    console.error('❌ Error invalidating session:', error);
-                })
-                .finally(() => {
-                    // Clear local session
-                    localStorage.removeItem('fitnesshub_session');
-                    // Keep user data for next login (so profile stays saved)
-                    window.location.href = '../index.html';
-                });
-        } else {
-            // If no session in localStorage, just clear and redirect
-            localStorage.removeItem('fitnesshub_session');
-            window.location.href = '../index.html';
-        }
+        // Clear all session related items
+        localStorage.removeItem('fitnesshub_session');
+        localStorage.removeItem('fitnesshub_user');
+        console.log('✅ Session cleared, redirecting...');
+        window.location.href = '../index.html';
     }
 }
+window.logout = logout;
 
 // ============================================
 // EDIT PROFILE FUNCTIONALITY

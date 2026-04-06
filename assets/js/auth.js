@@ -1,39 +1,221 @@
 // ============================================
 // AUTHENTICATION & REGISTRATION FUNCTIONALITY
 // ============================================
-// NOTE: All user data is now stored in Firebase Realtime Database
-// localStorage is used ONLY for temporary session cache
+// Fully offline-capable: uses localStorage + sessionStorage
+// No backend server required
 
+// ─── GLOBALS ────────────────────────────────────────────────
 let currentStep = 1;
 let selectedPlan = null;
 let userFormData = {};
 let otpTimerInterval = null;
+let resetOtpTimerInterval = null;
+
+// ─── STORAGE KEYS ───────────────────────────────────────────
+const KEY_USER       = 'fitnesshub_user';
+const KEY_SESSION    = 'fitnesshub_session';
+const KEY_DB         = 'fitnesshub_database';  // multi-user store
 
 // ============================================
-// FORM NAVIGATION
+// MULTI-USER DATABASE HELPERS
+// ============================================
+
+function getDatabase() {
+    try {
+        const raw = localStorage.getItem(KEY_DB);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+}
+
+function saveDatabase(db) {
+    localStorage.setItem(KEY_DB, JSON.stringify(db));
+}
+
+function findUser(email) {
+    if (!email) return null;
+    const emailLC = email.toLowerCase();
+
+    // 1. Check multi-user database (Primary)
+    const db = getDatabase();
+    if (db[emailLC]) {
+        const user = db[emailLC];
+        if (user.isDeleted || user.isActive === false) return null;
+        return user;
+    }
+
+    // 2. Check legacy array database
+    try {
+        const registeredUsersStr = localStorage.getItem('fitnesshub_registered_users');
+        if (registeredUsersStr) {
+            const users = JSON.parse(registeredUsersStr);
+            const user = users.find(u => u.email && u.email.toLowerCase() === emailLC);
+            if (user) {
+                if (user.isDeleted || user.isActive === false) return null;
+                return user;
+            }
+        }
+    } catch (e) { /* ignore */ }
+
+    // 3. Fallback: check legacy single-user cache
+    try {
+        const raw = localStorage.getItem(KEY_USER);
+        if (raw) {
+            const u = JSON.parse(raw);
+            if (u.email && u.email.toLowerCase() === emailLC) {
+                if (u.isDeleted || u.isActive === false) return null;
+                return u;
+            }
+        }
+    } catch (e) { /* ignore */ }
+
+    return null;
+}
+
+function saveUser(userData) {
+    if (!userData.email) return false;
+    const emailLC = userData.email.toLowerCase();
+    userData.email = emailLC;
+
+    // 1. Save into multi-user database (Object format)
+    const db = getDatabase();
+    db[emailLC] = userData;
+    saveDatabase(db);
+
+    // 2. Sync with legacy array database (Array format)
+    try {
+        const registeredUsersStr = localStorage.getItem('fitnesshub_registered_users');
+        let users = registeredUsersStr ? JSON.parse(registeredUsersStr) : [];
+        const index = users.findIndex(u => u.email && u.email.toLowerCase() === emailLC);
+        
+        if (index >= 0) {
+            users[index] = { ...users[index], ...userData };
+        } else {
+            users.push(userData);
+        }
+        localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
+    } catch (e) { console.error('Error syncing legacy users:', e); }
+
+    // 3. Also update single-user session cache for current user
+    localStorage.setItem(KEY_USER, JSON.stringify(userData));
+    return true;
+}
+
+function isUserRegistered(email) {
+    return !!findUser(email);
+}
+
+// ============================================
+// OTP HELPERS (fully local)
+// ============================================
+
+function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function storeOTP(email, otp) {
+    const otpData = {
+        otp: otp,
+        email: email.toLowerCase(),
+        createdAt: Date.now(),
+        expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
+    };
+    sessionStorage.setItem('fitnesshub_otp_data', JSON.stringify(otpData));
+}
+
+function verifyOTPCode(email, enteredOtp) {
+    try {
+        const raw = sessionStorage.getItem('fitnesshub_otp_data');
+        if (!raw) return { success: false, message: 'OTP not found. Please request a new one.' };
+
+        const otpData = JSON.parse(raw);
+
+        if (otpData.email !== email.toLowerCase()) {
+            return { success: false, message: 'OTP email mismatch.' };
+        }
+        if (Date.now() > otpData.expiresAt) {
+            sessionStorage.removeItem('fitnesshub_otp_data');
+            return { success: false, message: 'OTP has expired. Please request a new one.' };
+        }
+        if (otpData.otp !== enteredOtp) {
+            return { success: false, message: 'Incorrect OTP. Please try again.' };
+        }
+
+        // Valid — remove it
+        sessionStorage.removeItem('fitnesshub_otp_data');
+        return { success: true };
+    } catch (e) {
+        return { success: false, message: 'Verification error. Please try again.' };
+    }
+}
+
+// ============================================
+// SHOW ALERT (inline, no Bootstrap required)
+// ============================================
+
+function showAlert(message, type = 'info') {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.setAttribute('role', 'alert');
+    alertDiv.style.cssText = `
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        font-size: 14px;
+        font-family: 'Inter', sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        animation: fadeIn 0.2s ease;
+        border-left: 3px solid;
+    `;
+
+    const colors = {
+        success: { bg: 'rgba(0,212,100,0.1)', border: '#00d464', color: '#4fffaa', icon: '✅' },
+        error:   { bg: 'rgba(255,68,68,0.1)',  border: '#ff4444', color: '#ff8080', icon: '❌' },
+        info:    { bg: 'rgba(0,212,255,0.1)',  border: '#00d4ff', color: '#80eaff', icon: 'ℹ️' },
+        warning: { bg: 'rgba(255,170,0,0.1)',  border: '#ffaa00', color: '#ffd080', icon: '⚠️' }
+    };
+
+    const c = colors[type] || colors.info;
+    alertDiv.style.background = c.bg;
+    alertDiv.style.borderColor = c.border;
+    alertDiv.style.color = c.color;
+    alertDiv.innerHTML = `<span>${c.icon}</span> <span>${message}</span>`;
+
+    // Find best container
+    let container =
+        (document.getElementById('otpVerificationForm')?.style.display !== 'none'
+            ? document.getElementById('otpAlertContainer') : null) ||
+        document.getElementById('alertContainer') ||
+        document.getElementById('otpAlertContainer') ||
+        document.querySelector('.auth-form') ||
+        document.querySelector('.login-right') ||
+        document.querySelector('.container') ||
+        document.body;
+
+    // Clear stale alerts in dedicated containers
+    if (container && (container.id === 'alertContainer' || container.id === 'otpAlertContainer')) {
+        container.innerHTML = '';
+    }
+
+    container.insertBefore(alertDiv, container.firstChild);
+
+    // Auto-dismiss after 5s
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.remove(); }, 5000);
+}
+
+// ============================================
+// FORM NAVIGATION (Registration)
 // ============================================
 
 function nextStep(step) {
-    console.log(`🔄 nextStep called with step: ${step}`);
-    
-    const isValid = validateStep(step);
-    console.log(`Validation result: ${isValid}`);
-    
-    if (isValid) {
-        console.log(`✅ Validation passed for step ${step}`);
-        saveStepData(step);
-        
-        if (step === 3) {
-            // On Step 3, proceed directly to completion
-            completeRegistration();
-        } else {
-            // Otherwise move to next step normally
-            currentStep = step + 1;
-            console.log(`📍 Moving to step ${currentStep}`);
-            updateFormView();
-        }
+    if (!validateStep(step)) return;
+    saveStepData(step);
+
+    if (step === 3) {
+        completeRegistration();
     } else {
-        console.log(`❌ Validation failed for step ${step}`);
+        currentStep = step + 1;
+        updateFormView();
     }
 }
 
@@ -43,33 +225,16 @@ function prevStep(step) {
 }
 
 function updateFormView() {
-    console.log(`🎯 updateFormView called - showing step ${currentStep}`);
-    
-    // Hide all steps
-    document.querySelectorAll('.form-step').forEach(el => {
-        el.classList.remove('active');
-    });
+    document.querySelectorAll('.form-step').forEach(el => el.classList.remove('active'));
+    const active = document.getElementById(`step${currentStep}`);
+    if (active) active.classList.add('active');
 
-    // Show current step
-    const activeStep = document.getElementById(`step${currentStep}`);
-    if (activeStep) {
-        activeStep.classList.add('active');
-        console.log(`✅ Step ${currentStep} activated`);
-    } else {
-        console.error(`❌ Step ${currentStep} not found!`);
-    }
-
-    // Update step indicator
     document.querySelectorAll('.step').forEach((el, idx) => {
         el.classList.remove('active', 'completed');
-        if (idx + 1 === currentStep) {
-            el.classList.add('active');
-        } else if (idx + 1 < currentStep) {
-            el.classList.add('completed');
-        }
+        if (idx + 1 === currentStep) el.classList.add('active');
+        else if (idx + 1 < currentStep) el.classList.add('completed');
     });
 
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -79,99 +244,55 @@ function updateFormView() {
 
 function validateStep(step) {
     switch (step) {
-        case 1:
-            return validatePersonalInfo();
-        case 2:
-            return validateFitnessProfile();
-        case 3:
-            return validatePlanSelection();
-        default:
-            return true;
+        case 1: return validatePersonalInfo();
+        case 2: return validateFitnessProfile();
+        case 3: return validatePlanSelection();
+        default: return true;
     }
 }
 
 function validatePersonalInfo() {
-    const fullName = document.getElementById('fullName').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
+    const fullName = document.getElementById('fullName')?.value.trim();
+    const email    = document.getElementById('email')?.value.trim();
+    const phone    = document.getElementById('phone')?.value.trim();
+    const password = document.getElementById('password')?.value;
+    const confirm  = document.getElementById('confirmPassword')?.value;
 
-    if (!fullName) {
-        alert('Please enter your full name');
+    if (!fullName)                   { showAlert('Please enter your full name', 'error'); return false; }
+    if (!email || !isValidEmail(email)) { showAlert('Please enter a valid email', 'error'); return false; }
+    if (!phone || phone.replace(/\D/g,'').length < 10) { showAlert('Please enter a valid phone number (at least 10 digits)', 'error'); return false; }
+    if (!password || password.length < 6) { showAlert('Password must be at least 6 characters', 'error'); return false; }
+    if (password !== confirm)         { showAlert('Passwords do not match', 'error'); return false; }
+
+    // Check if email already registered
+    if (findUser(email)) {
+        showAlert('This email is already registered. Please login instead.', 'error');
         return false;
     }
 
-    if (!email || !isValidEmail(email)) {
-        alert('Please enter a valid email');
-        return false;
-    }
-
-    if (!phone || phone.length < 10) {
-        alert('Please enter a valid phone number (at least 10 digits)');
-        return false;
-    }
-
-    if (password.length < 6) {
-        alert('Password must be at least 6 characters long');
-        return false;
-    }
-
-    if (password !== confirmPassword) {
-        alert('Passwords do not match');
-        return false;
-    }
-
-    console.log('✅ Personal Info validation passed');
     return true;
 }
 
 function validateFitnessProfile() {
-    const age = document.getElementById('age').value;
-    const gender = document.getElementById('gender').value;
-    const height = document.getElementById('height').value;
-    const weight = document.getElementById('weight').value;
-    const goal = document.getElementById('goal').value;
-    const experience = document.getElementById('experience').value;
+    const age        = document.getElementById('age')?.value;
+    const gender     = document.getElementById('gender')?.value;
+    const height     = document.getElementById('height')?.value;
+    const weight     = document.getElementById('weight')?.value;
+    const goal       = document.getElementById('goal')?.value;
+    const experience = document.getElementById('experience')?.value;
 
-    if (!age || age < 13 || age > 120) {
-        alert('Please enter a valid age (13-120)');
-        return false;
-    }
-
-    if (!gender) {
-        alert('Please select your gender');
-        return false;
-    }
-
-    if (!height || height < 100 || height > 250) {
-        alert('Please enter a valid height (100-250 cm)');
-        return false;
-    }
-
-    if (!weight || weight < 20 || weight > 300) {
-        alert('Please enter a valid weight (20-300 kg)');
-        return false;
-    }
-
-    if (!goal) {
-        alert('Please select your fitness goal');
-        return false;
-    }
-
-    if (!experience) {
-        alert('Please select your fitness level');
-        return false;
-    }
+    if (!age || age < 13 || age > 120) { showAlert('Please enter a valid age (13–120)', 'error'); return false; }
+    if (!gender)       { showAlert('Please select your gender', 'error');       return false; }
+    if (!height || height < 100 || height > 250) { showAlert('Please enter a valid height (100–250 cm)', 'error'); return false; }
+    if (!weight || weight < 20  || weight > 300) { showAlert('Please enter a valid weight (20–300 kg)', 'error');  return false; }
+    if (!goal)         { showAlert('Please select your fitness goal', 'error'); return false; }
+    if (!experience)   { showAlert('Please select your fitness level', 'error'); return false; }
 
     return true;
 }
 
 function validatePlanSelection() {
-    if (!selectedPlan) {
-        alert('Please select a membership plan');
-        return false;
-    }
+    if (!selectedPlan) { showAlert('Please select a membership plan', 'error'); return false; }
     return true;
 }
 
@@ -180,21 +301,18 @@ function validatePlanSelection() {
 // ============================================
 
 function saveStepData(step) {
-    switch (step) {
-        case 1:
-            userFormData.fullName = document.getElementById('fullName').value;
-            userFormData.email = document.getElementById('email').value;
-            userFormData.phone = document.getElementById('phone').value;
-            userFormData.password = document.getElementById('password').value;
-            break;
-        case 2:
-            userFormData.age = document.getElementById('age').value;
-            userFormData.gender = document.getElementById('gender').value;
-            userFormData.height = document.getElementById('height').value;
-            userFormData.weight = document.getElementById('weight').value;
-            userFormData.goal = document.getElementById('goal').value;
-            userFormData.experience = document.getElementById('experience').value;
-            break;
+    if (step === 1) {
+        userFormData.fullName = document.getElementById('fullName').value.trim();
+        userFormData.email    = document.getElementById('email').value.trim().toLowerCase();
+        userFormData.phone    = document.getElementById('phone').value.trim();
+        userFormData.password = document.getElementById('password').value;
+    } else if (step === 2) {
+        userFormData.age        = document.getElementById('age').value;
+        userFormData.gender     = document.getElementById('gender').value;
+        userFormData.height     = document.getElementById('height').value;
+        userFormData.weight     = document.getElementById('weight').value;
+        userFormData.goal       = document.getElementById('goal').value;
+        userFormData.experience = document.getElementById('experience').value;
     }
 }
 
@@ -204,382 +322,104 @@ function saveStepData(step) {
 
 function selectPlan(planType, element) {
     const plans = {
-        starter: { name: 'Starter Pack', price: 999 },
-        professional: { name: 'Professional', price: 1999 },
-        elite: { name: 'Elite Plus', price: 2999 }
+        starter:      { name: 'Starter Pack',   price: 999  },
+        professional: { name: 'Professional',   price: 1999 },
+        elite:        { name: 'Elite Plus',      price: 2999 }
     };
 
     selectedPlan = { type: planType, ...plans[planType] };
 
-    // Remove selected class from all options
-    document.querySelectorAll('.plan-option').forEach(el => {
-        el.classList.remove('selected');
-    });
-
-    // Add selected class to clicked option
+    document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
     element.classList.add('selected');
 
-    // Update summary
-    document.getElementById('selectedPlanInfo').innerHTML = `
-        <strong>Selected Plan:</strong> ${selectedPlan.name} - ₹${selectedPlan.price}/month
-    `;
+    const info = document.getElementById('selectedPlanInfo');
+    if (info) info.innerHTML = `<strong>Selected Plan:</strong> ${selectedPlan.name} — ₹${selectedPlan.price}/month`;
 
-    // Update payment summary (elements may not exist on all pages)
-    const summaryPlan = document.getElementById('summaryPlan');
-    const summaryAmount = document.getElementById('summaryAmount');
-    const totalAmount = document.getElementById('totalAmount');
-    if (summaryPlan) summaryPlan.textContent = `${selectedPlan.name} (Monthly)`;
-    if (summaryAmount) summaryAmount.textContent = `₹${selectedPlan.price}`;
-    if (totalAmount) totalAmount.textContent = `₹${selectedPlan.price}`;
+    const sp = document.getElementById('summaryPlan');
+    const sa = document.getElementById('summaryAmount');
+    const ta = document.getElementById('totalAmount');
+    if (sp) sp.textContent = `${selectedPlan.name} (Monthly)`;
+    if (sa) sa.textContent = `₹${selectedPlan.price}`;
+    if (ta) ta.textContent = `₹${selectedPlan.price}`;
 }
 
 // ============================================
-// PAYMENT PROCESSING
+// REGISTRATION COMPLETION (localStorage only)
 // ============================================
 
-function setPaymentMethod(method) {
-    alert(`Payment method selected: ${method.toUpperCase()}. This is a demo - actual integration would be done here.`);
-}
-
-function processPayment() {
-    if (!validatePayment()) return;
-
-    // Save payment data
-    saveStepData(4);
-
-    // Simulate payment processing
-    showPaymentProcessing();
-
-    // Fast redirect (500ms instead of 3sec)
-    setTimeout(() => {
-        completeRegistration();
-    }, 500);
-}
-
-function showPaymentProcessing() {
-    const btn = document.querySelector('.btn-success');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Payment...';
-}
-
-function completeRegistration() {
-    console.log('🎉 Completing registration...');
-    // Validate all required data is present
+async function completeRegistration() {
     if (!userFormData.fullName || !userFormData.email || !userFormData.phone || !userFormData.password) {
-        alert('❌ Personal information incomplete');
+        showAlert('Personal information incomplete. Please go back to step 1.', 'error');
         return;
     }
-    if (!userFormData.age || !userFormData.gender || !userFormData.height || !userFormData.weight || !userFormData.goal || !userFormData.experience) {
-        alert('❌ Please fill all fitness profile fields');
+    if (!userFormData.age || !userFormData.gender) {
+        showAlert('Fitness profile incomplete. Please go back to step 2.', 'error');
         return;
     }
     if (!selectedPlan) {
-        alert('❌ Please select a membership plan');
+        showAlert('Please select a membership plan.', 'error');
         return;
     }
-    console.log('✅ All data validated');
-    // Create user record
-    const emailLC = userFormData.email.toLowerCase();
+
+    const completeBtn = document.querySelector('#step3 .btn-success') ||
+                        document.querySelector('button[onclick="nextStep(3)"]');
+    if (completeBtn) {
+        completeBtn.disabled = true;
+        completeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
+    }
+
+    // Build user record
+    const now = new Date();
+    const membershipEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
     const userRecord = {
-        fullName: userFormData.fullName,
-        email: emailLC,
-        phone: userFormData.phone,
-        password: userFormData.password,
-        age: parseInt(userFormData.age),
-        gender: userFormData.gender,
-        height: parseFloat(userFormData.height),
-        weight: parseFloat(userFormData.weight),
-        goal: userFormData.goal,
-        experience: userFormData.experience,
-        selectedPlan: {
-            type: selectedPlan.type,
-            name: selectedPlan.name,
-            price: selectedPlan.price
-        },
-        registrationDate: new Date().toISOString(),
+        fullName:         userFormData.fullName,
+        email:            userFormData.email,
+        phone:            userFormData.phone,
+        password:         userFormData.password,
+        age:              parseInt(userFormData.age),
+        gender:           userFormData.gender,
+        height:           parseFloat(userFormData.height),
+        weight:           parseFloat(userFormData.weight),
+        goal:             userFormData.goal,
+        experience:       userFormData.experience,
+        selectedPlan:     { type: selectedPlan.type, name: selectedPlan.name, price: selectedPlan.price },
+        registrationDate: now.toISOString(),
+        membershipStart:  now.toISOString(),
+        membershipEnd:    membershipEnd.toISOString(),
         profileCompleted: true,
-        profileCompletedAt: new Date().toISOString(),
-        isPaid: false,
-        paymentStatus: 'pending',
-        paymentDate: null
+        isPaid:           false,
+        paymentStatus:    'pending',
+        isActive:         true,
+        isDeleted:        false,
+        userId:           'user_' + Date.now()
     };
-    // Save to database (both localStorage and Supabase)
+
+    // Save user
     saveUser(userRecord);
-    // Also store in localStorage for compatibility
-    localStorage.setItem('fitnesshub_user', JSON.stringify(userRecord));
-    console.log('✅ User saved to localStorage');
-    // Add to registered users list (for admin panel)
-    let registeredUsers = [];
-    const existingUsers = localStorage.getItem('fitnesshub_registered_users');
-    if (existingUsers) {
-        try {
-            registeredUsers = JSON.parse(existingUsers);
-        } catch (e) {
-            registeredUsers = [];
-        }
-    }
-    const emailExists = registeredUsers.some(u => u.email && u.email.toLowerCase() === emailLC);
-    if (!emailExists) {
-        registeredUsers.push({
-            email: emailLC,
-            fullName: userFormData.fullName,
-            phone: userFormData.phone,
-            age: parseInt(userFormData.age),
-            gender: userFormData.gender,
-            height: parseFloat(userFormData.height),
-            weight: parseFloat(userFormData.weight),
-            goal: userFormData.goal,
-            experience: userFormData.experience,
-            registrationDate: new Date().toISOString(),
-            plan: selectedPlan.type,
-            isPaid: false,
-            paymentStatus: 'pending',
-            paymentDate: null
-        });
-        localStorage.setItem('fitnesshub_registered_users', JSON.stringify(registeredUsers));
-        console.log('✅ Added to registered users list');
-    }
-    // Create session
-    localStorage.setItem('fitnesshub_session', JSON.stringify({
-        email: emailLC,
-        loginTime: new Date().toISOString(),
+
+    // Create local session
+    localStorage.setItem(KEY_SESSION, JSON.stringify({
+        email:      userRecord.email,
+        loginTime:  now.toISOString(),
         rememberMe: true,
-        otpVerified: true,
-        autoLogin: true
+        otpVerified: true
     }));
-    console.log('✅ User registered successfully:', emailLC);
+
     // Show success step
-    document.getElementById('successEmail').textContent = emailLC;
-    document.getElementById('successPlan').textContent = selectedPlan.name;
+    const successEmail = document.getElementById('successEmail');
+    const successPlan  = document.getElementById('successPlan');
+    if (successEmail) successEmail.textContent = userRecord.email;
+    if (successPlan)  successPlan.textContent  = selectedPlan.name;
+
     currentStep = 4;
     updateFormView();
-    // Clear form
-    clearRegistrationForm();
-    // Redirect to payment page directly (plan already selected in registration Step 3)
+
+    userFormData = {};
+
     setTimeout(() => {
         window.location.replace('payment.html');
-    }, 2000);
-}
-
-// ============================================
-// CLEAR REGISTRATION FORM
-// ============================================
-
-function clearRegistrationForm() {
-    // Clear JavaScript variables
-    currentStep = 1;
-    selectedPlan = null;
-    userFormData = {};
-    
-    // Reset all HTML forms on the page
-    document.querySelectorAll('form').forEach(form => {
-        form.reset();
-    });
-    
-    document.querySelectorAll('textarea').forEach(textarea => {
-        textarea.value = '';
-    });
-    
-    // Clear all plan selections
-    document.querySelectorAll('.plan-option').forEach(el => {
-        el.classList.remove('selected');
-    });
-    
-    // Clear plan info display
-    const planInfo = document.getElementById('selectedPlanInfo');
-    if (planInfo) planInfo.innerHTML = '';
-    
-    // Force show Step 1
-    document.querySelectorAll('.form-step').forEach((el, idx) => {
-        if (idx === 0) {
-            el.classList.add('active');
-        } else {
-            el.classList.remove('active');
-        }
-    });
-    
-    // Reset step indicators
-    document.querySelectorAll('.step').forEach((el, idx) => {
-        el.classList.remove('active', 'completed');
-        if (idx === 0) {
-            el.classList.add('active');
-        }
-    });
-    
-    console.log('✅ Registration form cleared - Step 1 shown');
-}
-
-// ============================================
-// LOGIN FUNCTIONALITY WITH EMAIL OTP
-// ============================================
-
-// CHECK IF USER IS REGISTERED
-function isUserRegistered(email) {
-    try {
-        // First check via findUser (checks both fitnesshub_database and fitnesshub_user)
-        if (findUser(email)) {
-            return true;
-        }
-        
-        // Also check registered users list
-        const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
-        
-        if (!registeredUsers) {
-            return false;
-        }
-        
-        const users = JSON.parse(registeredUsers);
-        const userExists = users.some(user => user.email && user.email.toLowerCase() === email.toLowerCase());
-        
-        return userExists;
-    } catch (error) {
-        console.error('Error checking registration:', error);
-        return false;
-    }
-}
-
-// ============================================
-// PURE JAVASCRIPT - NO BACKEND REQUIRED
-// ============================================
-// All authentication handled client-side with localStorage
-
-
-// ============================================
-// PAGE LOAD - RESET FORM IF NEEDED
-// ============================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Clear any stale registration data from previous sessions
-    const currentPage = window.location.pathname;
-    
-    if (currentPage.includes('register.html')) {
-        console.log('📋 Register page loaded - resetting form to Step 1');
-        
-        // Set step to 1 first (already declared at top)
-        currentStep = 1;
-        selectedPlan = null;
-        userFormData = {};
-        
-        // Clear in small delay to ensure DOM is ready
-        setTimeout(() => {
-            // Force Step 1 to show FIRST
-            document.querySelectorAll('.form-step').forEach((el, idx) => {
-                if (idx === 0) {
-                    el.classList.add('active');
-                } else {
-                    el.classList.remove('active');
-                }
-            });
-            
-            // Force step indicator to Step 1
-            document.querySelectorAll('.step').forEach((el, idx) => {
-                el.classList.remove('active', 'completed');
-                if (idx === 0) {
-                    el.classList.add('active');
-                }
-            });
-            
-            clearRegistrationForm();
-            
-            // Also clear temporary registration data from sessionStorage
-            sessionStorage.removeItem('registration_step');
-            sessionStorage.removeItem('temp_user_data');
-            
-            // Clear form data from localStorage used during registration
-            localStorage.removeItem('current_registration_email');
-            localStorage.removeItem('current_registration_password');
-            
-            // Force all inputs to be empty and disable autocomplete
-            document.querySelectorAll('input').forEach(input => {
-                input.value = '';
-                input.autocomplete = 'off';
-            });
-            
-            // Clear selects
-            document.querySelectorAll('select').forEach(select => {
-                select.value = '';
-                select.selectedIndex = 0;
-            });
-            
-            // Force focus on first field
-            const firstField = document.getElementById('fullName');
-            if (firstField) {
-                firstField.focus();
-                firstField.value = '';
-            }
-            
-            console.log('✅ Form reset complete - Step 1 showing');
-        }, 50);
-    }
-});
-
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-
-// NOTE: saveUser and findUser are defined below (after utility functions)
-// They handle both localStorage and Supabase sync
-
-function generateOTP() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// ============================================
-// NOTE: OTP storage now uses Firebase
-// storeOTP and verifyOTPCode functions removed
-// Use Firebase REST API instead via server
-// ============================================
-    
-    if (!otpRecord) {
-        return { success: false, message: 'No OTP found. Please request a new one.' };
-    }
-    
-    if (new Date(otpRecord.expiresAt) < new Date()) {
-        return { success: false, message: 'OTP has expired. Please request a new one.' };
-    }
-    
-    // NOTE: Moved to Firebase - OTP verification now handled by backup server
-}
-
-// ============================================
-// USER LOOKUP - Firebase Compatible
-// ============================================
-
-function findUser(email) {
-    // Check if user is stored in fitnesshub_user (temporary cache)
-    const storedUser = localStorage.getItem('fitnesshub_user');
-    if (storedUser) {
-        try {
-            const parsedUser = JSON.parse(storedUser);
-            if (parsedUser.email && parsedUser.email.toLowerCase() === email.toLowerCase()) {
-                // Check if user is marked as deleted
-                if (parsedUser.isDeleted === true || parsedUser.isActive === false) {
-                    console.log('❌ User account has been deleted:', email);
-                    return null;
-                }
-                return parsedUser;
-            }
-        } catch (e) {
-            console.error('Error parsing fitnesshub_user:', e);
-        }
-    }
-    return null;
-}
-
-// ============================================
-// SAVE USER - Firebase Integration
-// ============================================
-// NOTE: User data is now stored in Firebase
-// This function saves to localStorage cache only
-function saveUser(userData) {
-    // Save to localStorage as temporary cache
-    userData.email = userData.email.toLowerCase();
-    localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
-    console.log('✅ User saved to cache');
-    
-    // TODO: Sync to Firebase via API
-    // POST /api/auth/register to sync with Firebase
-    return true;
+    }, 3000);
 }
 
 // ============================================
@@ -587,248 +427,240 @@ function saveUser(userData) {
 // ============================================
 
 function handleLogin() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const rememberMe = document.getElementById('rememberMe').checked;
-
-    if (!email || !isValidEmail(email)) {
-        showAlert('Please enter a valid email', 'error');
-        return;
-    }
-
-    if (!password) {
-        showAlert('Please enter your password', 'error');
-        return;
-    }
-
-    // Show loading
-    showAlert('🔄 Logging in...', 'info');
-    
-    // Call Firebase API via backend
-    apiLoginUser(email, password)
-        .then(async (result) => {
-            if (!result.success) {
-                showAlert(`❌ ${result.error}`, 'error');
-                return;
-            }
-
-            const user = result.data.user;
-            
-            // Check if user has completed payment
-            const isPaid = user.isPaid === true;
-            
-            showAlert('✅ Login successful! Redirecting...', 'success');
-            
-            // Create session
-            setTimeout(() => {
-                localStorage.setItem('fitnesshub_session', JSON.stringify({
-                    email: email,
-                    loginTime: new Date().toISOString(),
-                    rememberMe: rememberMe,
-                    otpVerified: true
-                }));
-
-                // Store user profile
-                localStorage.setItem('fitnesshub_user', JSON.stringify(user));
-
-                // Redirect based on payment status
-                if (isPaid) {
-                    window.location.href = 'dashboard.html';
-                } else {
-                    // User hasn't paid yet - send to payment page
-                    window.location.href = 'payment.html';
-                }
-            }, 1000);
-        })
-        .catch((error) => {
-            showAlert(`❌ Login failed: ${error.message}`, 'error');
-        });
-}
-
-function startOTPTimer() {
-    let timeLeft = 600; // 10 minutes
-    
-    if (otpTimerInterval) clearInterval(otpTimerInterval);
-    
-    otpTimerInterval = setInterval(() => {
-        timeLeft--;
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
-        document.getElementById('otpTimer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        
-        if (timeLeft <= 0) {
-            clearInterval(otpTimerInterval);
-            showAlert('⏰ OTP Expired! Please request a new one', 'error');
-            cancelOtpVerification();
-        } else if (timeLeft === 60) {
-            showAlert('⚠️ OTP expires in 1 minute', 'warning');
-        }
-    }, 1000);
-}
-
-function verifyOTP() {
-    const enteredOTP = document.getElementById('otpInput').value.trim();
-    
-    if (!enteredOTP) {
-        showAlert('Please enter the OTP', 'error');
-        return;
-    }
-
-    if (enteredOTP.length !== 6) {
-        showAlert('OTP must be 6 digits', 'error');
-        return;
-    }
-
-    const email = sessionStorage.getItem('fitnesshub_temp_email');
-
-    // Verify OTP locally
-    const result = verifyOTPCode(email, enteredOTP);
-
-    if (result.success) {
-        showAlert('✅ OTP Verified! Logging in...', 'success');
-        clearInterval(otpTimerInterval);
-        
-        setTimeout(() => {
-            // Complete login
-            const rememberMe = sessionStorage.getItem('fitnesshub_temp_remember') === 'true';
-
-            localStorage.setItem('fitnesshub_session', JSON.stringify({
-                email: email,
-                loginTime: new Date().toISOString(),
-                rememberMe: rememberMe,
-                otpVerified: true
-            }));
-
-            // Clean up session storage
-            sessionStorage.removeItem('fitnesshub_temp_otp');
-            sessionStorage.removeItem('fitnesshub_temp_email');
-            sessionStorage.removeItem('fitnesshub_temp_password');
-            sessionStorage.removeItem('fitnesshub_temp_remember');
-
-            // Find user, store profile, and redirect appropriately
-            const user = findUser(email);
-            if (user) {
-                localStorage.setItem('fitnesshub_user', JSON.stringify(user));
-                if (user.isPaid === true) {
-                    window.location.href = 'dashboard.html';
-                } else {
-                    window.location.href = 'payment.html';
-                }
-            } else {
-                window.location.href = 'dashboard.html'; // Fallback
-            }
-        }, 1500);
-    } else {
-        showAlert('❌ ' + result.message, 'error');
-        document.getElementById('otpInput').value = '';
-        document.getElementById('otpInput').focus();
-    }
-}
-
-function resendOTP() {
-    const email = sessionStorage.getItem('fitnesshub_temp_email');
-    
-    // Generate new OTP
-    const newOTP = generateOTP();
-    storeOTP(email, newOTP);
-    
-    console.log('%c✅ New OTP Generated for ' + email, 'color: #00ff41; font-size: 14px; font-weight: bold;');
-    console.log('%c📌 Your OTP: ' + newOTP, 'color: #00ff41; font-size: 16px; font-weight: bold; background: #1a1f3a; padding: 10px; border-radius: 5px;');
-    
-    showAlert('✅ New OTP sent to your email!', 'success');
-    
-    // Show OTP in popup
-    setTimeout(() => {
-        alert(`📧 Your New OTP Code:\n\n${newOTP}\n\n(Valid for 10 minutes)`);
-    }, 300);
-    
-    // Clear input and focus
-    document.getElementById('otpInput').value = '';
-    document.getElementById('otpInput').focus();
-    
-    // Restart timer
-    startOTPTimer();
-}
-
-function cancelOtpVerification() {
-    clearInterval(otpTimerInterval);
-    document.getElementById('otpVerificationForm').style.display = 'none';
-    document.getElementById('loginForm').style.display = 'block';
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginPassword').value = '';
-    document.getElementById('otpInput').value = '';
-    
-    sessionStorage.removeItem('fitnesshub_temp_otp');
-    sessionStorage.removeItem('fitnesshub_temp_email');
-    sessionStorage.removeItem('fitnesshub_temp_password');
-    sessionStorage.removeItem('fitnesshub_temp_remember');
-}
-
-// ============================================
-// FORGOT PASSWORD FUNCTIONALITY
-// ============================================
-
-function handleForgotPassword() {
-    const email = document.getElementById('forgotEmail').value.trim();
+    const email    = document.getElementById('loginEmail')?.value.trim();
+    const password = document.getElementById('loginPassword')?.value;
+    const rememberMe = document.getElementById('rememberMe')?.checked;
 
     if (!email || !isValidEmail(email)) {
         showAlert('Please enter a valid email address', 'error');
         return;
     }
-
-    // Check if email is registered
-    if (!isUserRegistered(email)) {
-        showAlert('❌ This email is not registered in our system. Please register first.', 'error');
+    if (!password) {
+        showAlert('Please enter your password', 'error');
         return;
     }
 
-    // Generate and store password reset OTP
+    showAlert('Verifying credentials...', 'info');
+
+    setTimeout(() => {
+        // Securely find user and ensure they exist in primary database
+        const user = findUser(email);
+
+        if (!user) {
+            showAlert('No account found with this email. Please register first.', 'error');
+            return;
+        }
+
+        if (user.password !== password) {
+            showAlert('Incorrect password. Please try again.', 'error');
+            return;
+        }
+
+        // MIGRATION: Ensure user is saved in Primary Object Database (fitnesshub_database)
+        try {
+            const db = getDatabase();
+            db[email.toLowerCase()] = user;
+            saveDatabase(db);
+        } catch (e) {
+            console.warn('Migration failed but proceeding:', e);
+        }
+
+        // Save session
+        localStorage.setItem(KEY_SESSION, JSON.stringify({
+            email:      user.email,
+            loginTime:  new Date().toISOString(),
+            rememberMe: rememberMe || false,
+            otpVerified: true
+        }));
+
+        // Always sync the user profile to KEY_USER for the current session
+        localStorage.setItem(KEY_USER, JSON.stringify(user));
+
+        setTimeout(() => {
+            // HIGH-RELIABILITY PAYMENT CHECK
+            // 1. Check direct flags
+            let isPaid = user.isPaid === true || 
+                         user.paymentStatus === 'completed' || 
+                         user.paymentStatus === 'paid';
+            
+            // 2. Check payment history as a bulletproof fallback
+            if (!isPaid) {
+                try {
+                    const history = JSON.parse(localStorage.getItem('fitnesshub_payment_history') || '[]');
+                    // Find any completed payment in history
+                    const hasPaidHistory = history.some(p => 
+                        (p.status === 'completed' || p.status === 'paid') && 
+                        (p.email === user.email || !p.email) // Support older history without email too
+                    );
+                    if (hasPaidHistory) {
+                        isPaid = true;
+                        console.log('✅ Found payment in history - granting access');
+                    }
+                } catch (e) { console.warn('History check failed:', e); }
+            }
+
+            if (isPaid) {
+                console.log('✅ User is validated as PAID - going to dashboard');
+                window.location.href = 'dashboard.html';
+            } else {
+                console.log('❌ User is NOT paid - going to payment');
+                window.location.href = 'payment.html';
+            }
+        }, 1000);
+    }, 600);
+}
+
+// ============================================
+// OTP FLOW (for future email-based OTP upgrade)
+// ============================================
+
+function startOTPTimer() {
+    let timeLeft = 600;
+    if (otpTimerInterval) clearInterval(otpTimerInterval);
+
+    otpTimerInterval = setInterval(() => {
+        timeLeft--;
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        const el = document.getElementById('otpTimer');
+        if (el) el.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+        if (timeLeft <= 0) {
+            clearInterval(otpTimerInterval);
+            showAlert('OTP expired! Please request a new one.', 'error');
+            cancelOtpVerification();
+        } else if (timeLeft === 60) {
+            showAlert('OTP expires in 1 minute.', 'warning');
+        }
+    }, 1000);
+}
+
+function verifyOTP() {
+    const enteredOTP = document.getElementById('otpInput')?.value.trim();
+    if (!enteredOTP) { showAlert('Please enter the OTP', 'error'); return; }
+    if (enteredOTP.length !== 6) { showAlert('OTP must be 6 digits', 'error'); return; }
+
+    const email = sessionStorage.getItem('fitnesshub_temp_email');
+    const result = verifyOTPCode(email, enteredOTP);
+
+    if (result.success) {
+        showAlert('OTP Verified! Logging in...', 'success');
+        clearInterval(otpTimerInterval);
+
+        setTimeout(() => {
+            const rememberMe = sessionStorage.getItem('fitnesshub_temp_remember') === 'true';
+            localStorage.setItem(KEY_SESSION, JSON.stringify({
+                email, loginTime: new Date().toISOString(), rememberMe, otpVerified: true
+            }));
+
+            sessionStorage.removeItem('fitnesshub_temp_otp');
+            sessionStorage.removeItem('fitnesshub_temp_email');
+            sessionStorage.removeItem('fitnesshub_temp_password');
+            sessionStorage.removeItem('fitnesshub_temp_remember');
+
+            const user = findUser(email);
+            if (user) {
+                localStorage.setItem(KEY_USER, JSON.stringify(user));
+                window.location.href = user.isPaid ? 'dashboard.html' : 'payment.html';
+            } else {
+                window.location.href = 'dashboard.html';
+            }
+        }, 1500);
+    } else {
+        showAlert(result.message, 'error');
+        const inp = document.getElementById('otpInput');
+        if (inp) { inp.value = ''; inp.focus(); }
+    }
+}
+
+function resendOTP() {
+    const email = sessionStorage.getItem('fitnesshub_temp_email');
+    const newOTP = generateOTP();
+    storeOTP(email, newOTP);
+
+    showAlert('New OTP generated!', 'success');
+    setTimeout(() => {
+        alert(`📧 Your New OTP:\n\n${newOTP}\n\n(Valid for 10 minutes)`);
+    }, 300);
+
+    const inp = document.getElementById('otpInput');
+    if (inp) { inp.value = ''; inp.focus(); }
+    startOTPTimer();
+}
+
+function cancelOtpVerification() {
+    clearInterval(otpTimerInterval);
+    const otpForm = document.getElementById('otpVerificationForm');
+    const loginForm = document.getElementById('loginForm');
+    if (otpForm)  otpForm.style.display  = 'none';
+    if (loginForm) loginForm.style.display = 'block';
+
+    ['loginEmail','loginPassword','otpInput'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    ['fitnesshub_temp_otp','fitnesshub_temp_email',
+     'fitnesshub_temp_password','fitnesshub_temp_remember'].forEach(k => sessionStorage.removeItem(k));
+}
+
+// ============================================
+// FORGOT PASSWORD FLOW
+// ============================================
+
+function handleForgotPassword() {
+    const email = document.getElementById('forgotEmail')?.value.trim();
+
+    if (!email || !isValidEmail(email)) {
+        showAlert('Please enter a valid email address', 'error');
+        return;
+    }
+    if (!isUserRegistered(email)) {
+        showAlert('This email is not registered. Please sign up first.', 'error');
+        return;
+    }
+
     const resetOTP = generateOTP();
     storeOTP(email, resetOTP);
-    
-    // Store email for reset flow
     sessionStorage.setItem('fitnesshub_reset_email', email);
-    
-    console.log('%c✅ Password Reset OTP Generated for ' + email, 'color: #00ff41; font-size: 14px; font-weight: bold;');
-    console.log('%c📌 Recovery OTP: ' + resetOTP, 'color: #00ff41; font-size: 16px; font-weight: bold; background: #1a1f3a; padding: 10px; border-radius: 5px;');
-    
-    showAlert('✅ Recovery OTP sent to your email!', 'success');
-    
-    // Show OTP in popup
+
+    showAlert('Recovery OTP generated!', 'success');
     setTimeout(() => {
         alert(`📧 Your Recovery OTP:\n\n${resetOTP}\n\n(Valid for 10 minutes)`);
     }, 300);
 
-    // Show OTP verification form
     document.getElementById('forgotPasswordForm').style.display = 'none';
-    document.getElementById('resetOtpForm').style.display = 'block';
-    document.getElementById('resetOtpEmail').textContent = `OTP sent to: ${email}`;
-    document.getElementById('resetOtpInput').focus();
+    document.getElementById('resetOtpForm').style.display       = 'block';
+
+    const emailLabel = document.getElementById('resetOtpEmail');
+    if (emailLabel) emailLabel.textContent = `OTP sent to: ${email}`;
+
+    const inp = document.getElementById('resetOtpInput');
+    if (inp) inp.focus();
     startResetOTPTimer();
 }
 
 function startResetOTPTimer() {
     let timeLeft = 300;
-    const timerElement = document.getElementById('resetOtpTimer');
-    
     if (resetOtpTimerInterval) clearInterval(resetOtpTimerInterval);
-    
+
     resetOtpTimerInterval = setInterval(() => {
         timeLeft--;
-        timerElement.textContent = timeLeft;
-        
+        const el = document.getElementById('resetOtpTimer');
+        if (el) el.textContent = timeLeft;
+
         if (timeLeft <= 0) {
             clearInterval(resetOtpTimerInterval);
-            showAlert('Recovery OTP Expired! Please try again', 'error');
+            showAlert('OTP expired! Please try again.', 'error');
             goBackToForgotPassword();
         } else if (timeLeft === 60) {
-            showAlert('⚠️ OTP expires in 1 minute', 'warning');
+            showAlert('OTP expires in 1 minute.', 'warning');
         }
     }, 1000);
 }
 
 function verifyResetOTP() {
-    const otp = document.getElementById('resetOtpInput').value.trim();
+    const otp   = document.getElementById('resetOtpInput')?.value.trim();
     const email = sessionStorage.getItem('fitnesshub_reset_email');
 
     if (!otp || otp.length !== 6) {
@@ -836,414 +668,252 @@ function verifyResetOTP() {
         return;
     }
 
-    // Verify OTP locally
     const result = verifyOTPCode(email, otp);
-
     if (result.success) {
-        showAlert('✅ OTP Verified! Enter your new password', 'success');
+        showAlert('OTP verified! Enter your new password.', 'success');
         clearInterval(resetOtpTimerInterval);
-        
-        // Store reset token
         sessionStorage.setItem('fitnesshub_reset_token', otp);
-        
+
         setTimeout(() => {
-            document.getElementById('resetOtpForm').style.display = 'none';
-            document.getElementById('resetPasswordForm').style.display = 'block';
-            document.getElementById('newPassword').focus();
-        }, 1000);
+            document.getElementById('resetOtpForm').style.display      = 'none';
+            document.getElementById('resetPasswordForm').style.display  = 'block';
+            document.getElementById('newPassword')?.focus();
+        }, 800);
     } else {
-        showAlert('❌ ' + result.message, 'error');
-        document.getElementById('resetOtpInput').value = '';
-        document.getElementById('resetOtpInput').focus();
+        showAlert(result.message, 'error');
+        const inp = document.getElementById('resetOtpInput');
+        if (inp) { inp.value = ''; inp.focus(); }
     }
 }
 
 function resendResetOTP() {
     const email = sessionStorage.getItem('fitnesshub_reset_email');
-    
-    // Generate new OTP
     const newOTP = generateOTP();
     storeOTP(email, newOTP);
-    
-    console.log('%c✅ New Recovery OTP Generated for ' + email, 'color: #00ff41; font-size: 14px; font-weight: bold;');
-    console.log('%c📌 Recovery OTP: ' + newOTP, 'color: #00ff41; font-size: 16px; font-weight: bold; background: #1a1f3a; padding: 10px; border-radius: 5px;');
-    
-    showAlert('✅ New OTP sent!', 'success');
-    
-    // Show OTP in popup
+
+    showAlert('New OTP generated!', 'success');
     setTimeout(() => {
         alert(`📧 Your New Recovery OTP:\n\n${newOTP}\n\n(Valid for 10 minutes)`);
     }, 300);
-    
-    document.getElementById('resetOtpInput').value = '';
-    document.getElementById('resetOtpInput').focus();
+
+    const inp = document.getElementById('resetOtpInput');
+    if (inp) { inp.value = ''; inp.focus(); }
     startResetOTPTimer();
 }
 
 function resetPassword() {
-    const newPassword = document.getElementById('newPassword').value;
-    const confirmPassword = document.getElementById('confirmNewPassword').value;
-    const email = sessionStorage.getItem('fitnesshub_reset_email');
+    const newPassword = document.getElementById('newPassword')?.value;
+    const confirmPass = document.getElementById('confirmNewPassword')?.value;
+    const email       = sessionStorage.getItem('fitnesshub_reset_email');
 
     if (!newPassword || newPassword.length < 8) {
         showAlert('Password must be at least 8 characters', 'error');
         return;
     }
-
     if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-        showAlert('Password must contain letters and numbers', 'error');
+        showAlert('Password must contain both letters and numbers', 'error');
         return;
     }
-
-    if (newPassword !== confirmPassword) {
+    if (newPassword !== confirmPass) {
         showAlert('Passwords do not match', 'error');
         return;
     }
 
-    // Update password locally
     const user = findUser(email);
-    if (user) {
-        // Update user's password
-        user.password = newPassword;
-        saveUser(user);
-        
-        showAlert('✅ Password reset successfully! Redirecting to login...', 'success');
-        clearInterval(resetOtpTimerInterval);
-        
-        // Clear session
-        sessionStorage.removeItem('fitnesshub_reset_email');
-        sessionStorage.removeItem('fitnesshub_reset_token');
-        
-        console.log('✅ Password updated for user:', email);
-        
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 2000);
-    } else {
-        showAlert('❌ User not found', 'error');
-    }
+    if (!user) { showAlert('User not found', 'error'); return; }
+
+    user.password = newPassword;
+    saveUser(user);
+
+    showAlert('Password reset successfully! Redirecting to login...', 'success');
+    clearInterval(resetOtpTimerInterval);
+    sessionStorage.removeItem('fitnesshub_reset_email');
+    sessionStorage.removeItem('fitnesshub_reset_token');
+
+    setTimeout(() => { window.location.href = 'login.html'; }, 2000);
 }
 
 function goBackToForgotPassword() {
     clearInterval(resetOtpTimerInterval);
-    document.getElementById('forgotPasswordForm').style.display = 'block';
-    document.getElementById('resetOtpForm').style.display = 'none';
-    document.getElementById('resetPasswordForm').style.display = 'none';
-    document.getElementById('forgotEmail').value = '';
-    document.getElementById('resetOtpInput').value = '';
+    const ff = document.getElementById('forgotPasswordForm');
+    const rf = document.getElementById('resetOtpForm');
+    const pf = document.getElementById('resetPasswordForm');
+    if (ff) ff.style.display = 'block';
+    if (rf) rf.style.display = 'none';
+    if (pf) pf.style.display = 'none';
+
+    const fe = document.getElementById('forgotEmail');
+    const ri = document.getElementById('resetOtpInput');
+    if (fe) fe.value = '';
+    if (ri) ri.value = '';
 }
 
-// Global variable for reset OTP timer
-let resetOtpTimerInterval = null;
-
 // ============================================
-// EMAIL OTP SERVICE
+// CLEAR REGISTRATION FORM
 // ============================================
 
-// Send OTP via Email using Firebase Cloud Function or Backend Service
-async function sendOTPEmail(email, otp) {
-    try {
-        // Option 1: Using Firebase Cloud Function
-        const response = await fetch('https://YOUR-FIREBASE-PROJECT.cloudfunctions.net/sendOTP', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                email: email,
-                otp: otp
-            })
-        });
-        
-        if (response.ok) {
-            console.log('✅ OTP sent successfully via email');
-            return true;
-        }
-    } catch (error) {
-        console.log('Email service not configured. OTP shown in console for demo.');
-    }
-    
-    return false;
-}
+function clearRegistrationForm() {
+    currentStep = 1;
+    selectedPlan = null;
+    userFormData = {};
 
-// Firebase Cloud Function for Email Sending
-// Create this in Firebase Console → Cloud Functions
-/*
-const functions = require('firebase-functions');
-const nodemailer = require('nodemailer');
+    document.querySelectorAll('form').forEach(f => f.reset());
+    document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'your-email@gmail.com',
-        pass: 'your-app-password'
-    }
-});
+    const planInfo = document.getElementById('selectedPlanInfo');
+    if (planInfo) planInfo.innerHTML = '';
 
-exports.sendOTP = functions.https.onRequest((req, res) => {
-    cors()(req, res, async () => {
-        if (req.method !== 'POST') {
-            return res.status(405).send('Method Not Allowed');
-        }
-
-        const { email, otp } = req.body;
-
-        const mailOptions = {
-            from: 'Fitness Hub <noreply@fitnesshub.com>',
-            to: email,
-            subject: 'Your Fitness Hub Login OTP',
-            html: `
-                <h2>Welcome to Fitness Hub!</h2>
-                <p>Your One-Time Password (OTP) is:</p>
-                <h1 style="color: #00ff41; font-size: 48px; letter-spacing: 5px;">${otp}</h1>
-                <p>This OTP is valid for 5 minutes.</p>
-                <p>If you did not request this, please ignore this email.</p>
-                <br>
-                <p>Best regards,<br>Fitness Hub Team</p>
-            `
-        };
-
-        try {
-            await transporter.sendMail(mailOptions);
-            res.status(200).json({ message: 'OTP sent successfully' });
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
+    document.querySelectorAll('.form-step').forEach((el, idx) => {
+        el.classList.toggle('active', idx === 0);
     });
-});
-*/
+    document.querySelectorAll('.step').forEach((el, idx) => {
+        el.classList.remove('active', 'completed');
+        if (idx === 0) el.classList.add('active');
+    });
+}
+
+// ============================================
+// PAYMENT (Simulated)
+// ============================================
+
+function setPaymentMethod(method) {
+    document.querySelectorAll('.payment-method-btn').forEach(btn => btn.classList.remove('active'));
+    const btn = event?.target?.closest('.payment-method-btn');
+    if (btn) btn.classList.add('active');
+    sessionStorage.setItem('fitnesshub_payment_method', method);
+}
+
+function processPayment() {
+    if (!validatePayment()) return;
+    showPaymentProcessing();
+    setTimeout(() => finalizePayment(), 1200);
+}
+
+function validatePayment() {
+    const method = sessionStorage.getItem('fitnesshub_payment_method') || 'card';
+    if (method === 'card') {
+        const num  = document.getElementById('cardNumber')?.value.trim();
+        const exp  = document.getElementById('cardExpiry')?.value.trim();
+        const cvc  = document.getElementById('cardCVC')?.value.trim();
+        const name = document.getElementById('cardName')?.value.trim();
+        if (!num || num.length < 16) { showAlert('Please enter a valid card number', 'error'); return false; }
+        if (!exp)  { showAlert('Please enter card expiry date', 'error'); return false; }
+        if (!cvc || cvc.length < 3)  { showAlert('Please enter CVC', 'error'); return false; }
+        if (!name) { showAlert('Please enter the cardholder name', 'error'); return false; }
+    }
+    return true;
+}
+
+function showPaymentProcessing() {
+    const btn = document.querySelector('.btn-success, .btn-payment');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Payment...';
+    }
+}
+
+function finalizePayment() {
+    try {
+        const sessionRaw = localStorage.getItem(KEY_SESSION);
+        const session = sessionRaw ? JSON.parse(sessionRaw) : null;
+
+        if (session?.email) {
+            const user = findUser(session.email);
+            if (user) {
+                user.isPaid        = true;
+                user.paymentStatus = 'completed'; // Matches admin dashboard verification
+                user.paymentDate   = new Date().toISOString();
+                user.transactionId = 'TXN_' + Date.now();
+                saveUser(user);
+            }
+        }
+
+        // Show success then redirect
+        const container = document.querySelector('.payment-container, .container');
+        if (container) {
+            container.innerHTML = `
+                <div style="text-align:center; padding:80px 20px; font-family:'Inter',sans-serif; color:#f0f2ff;">
+                    <div style="font-size:80px; margin-bottom:24px; color:#00d464;">✅</div>
+                    <h2 style="font-family:'Space Grotesk',sans-serif; font-size:36px; text-transform:uppercase; margin-bottom:16px;">Payment Successful!</h2>
+                    <p style="color:#7a80a8; font-size:18px; margin-bottom:32px;">Welcome to Fitness Hub! Your membership is now active.</p>
+                    <p style="color:#7a80a8; font-size:14px;">Redirecting to dashboard...</p>
+                </div>`;
+        }
+
+        setTimeout(() => { window.location.href = 'dashboard.html'; }, 2500);
+    } catch (e) {
+        console.error('Payment finalization error:', e);
+        window.location.href = 'dashboard.html';
+    }
+}
 
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
 
 function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// Format card number input
-document.addEventListener('DOMContentLoaded', () => {
-    const cardNumberInput = document.getElementById('cardNumber');
-    if (cardNumberInput) {
-        cardNumberInput.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/\s/g, '').slice(0, 16);
-        });
-    }
-
-    const cardExpiryInput = document.getElementById('cardExpiry');
-    if (cardExpiryInput) {
-        cardExpiryInput.addEventListener('input', (e) => {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.slice(0, 2) + '/' + value.slice(2, 4);
-            }
-            e.target.value = value;
-        });
-    }
-
-    const cardCVCInput = document.getElementById('cardCVC');
-    if (cardCVCInput) {
-        cardCVCInput.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 3);
-        });
-    }
-});
-
-// ============================================
-// UTILITY FUNCTIONS
-// ============================================
-
-function showAlert(message, type = 'info') {
-    const alertDiv = document.createElement('div');
-    
-    // Map type to alert class
-    const alertClass = type === 'error' ? 'alert-danger' : type === 'success' ? 'alert-success' : `alert-${type}`;
-    alertDiv.className = `alert ${alertClass}`;
-    alertDiv.setAttribute('role', 'alert');
-    alertDiv.innerHTML = `${message}`;
-    
-    // Try to find the appropriate container based on current form
-    let container = null;
-    
-    // Check if OTP form is active
-    const otpForm = document.getElementById('otpVerificationForm');
-    if (otpForm && otpForm.style.display !== 'none') {
-        container = document.getElementById('otpAlertContainer');
-    } else {
-        container = document.getElementById('alertContainer');
-    }
-    
-    // Fallback to old method if not found
-    if (!container) {
-        container = document.querySelector('.container');
-    }
-    if (!container) {
-        container = document.querySelector('.auth-container');
-    }
-    if (!container) {
-        container = document.body;
-    }
-    
-    // Clear previous alerts if inserting into container
-    if (container.id === 'alertContainer' || container.id === 'otpAlertContainer') {
-        container.innerHTML = '';
-    }
-    
-    container.insertBefore(alertDiv, container.firstChild);
-    
-    // Auto-remove after 5 seconds if not in a specific alert container
-    if (container.id !== 'alertContainer' && container.id !== 'otpAlertContainer') {
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    }
-}
-
-// ============================================
-// AI-POWERED FEATURES
-// ============================================
-
-function getAIWorkoutSuggestion(goal, experience, weight, height) {
+function getAIWorkoutSuggestion(goal, experience) {
     const suggestions = {
         weight_loss: {
-            beginner: {
-                workouts: ['30min Walking/Jogging', 'Swimming', 'Cycling'],
-                diet: 'Low-calorie diet with high protein',
-                frequency: '4-5 times per week'
-            },
-            intermediate: {
-                workouts: ['HIIT Training', 'CrossFit', 'Circuit Training'],
-                diet: 'Balanced diet with calorie deficit',
-                frequency: '5-6 times per week'
-            },
-            advanced: {
-                workouts: ['Advanced HIIT', 'Strength + Cardio Combo', 'Customize regimen'],
-                diet: 'Customized macro diet plan',
-                frequency: '6-7 times per week'
-            }
+            beginner:     { workouts: ['30min Walking/Jogging', 'Swimming', 'Cycling'], diet: 'Low-calorie, high protein', frequency: '4–5×/week' },
+            intermediate: { workouts: ['HIIT Training', 'CrossFit', 'Circuit Training'], diet: 'Balanced, calorie deficit', frequency: '5–6×/week' },
+            advanced:     { workouts: ['Advanced HIIT', 'Strength + Cardio'], diet: 'Customized macros', frequency: '6–7×/week' }
         },
         muscle_gain: {
-            beginner: {
-                workouts: ['Basic Strength Training', 'Free Weights', 'Machine Training'],
-                diet: 'High protein, caloric surplus',
-                frequency: '4 times per week'
-            },
-            intermediate: {
-                workouts: ['Progressive Overload', 'Hypertrophy Training', 'Periodization'],
-                diet: 'Advanced macro cycling',
-                frequency: '5 times per week'
-            },
-            advanced: {
-                workouts: ['Advanced Periodization', 'Specialized Programs', 'Peak Performance'],
-                diet: 'Optimized nutrition plan',
-                frequency: '6 times per week'
-            }
+            beginner:     { workouts: ['Basic Strength Training', 'Free Weights'], diet: 'High protein, caloric surplus', frequency: '4×/week' },
+            intermediate: { workouts: ['Progressive Overload', 'Hypertrophy Training'], diet: 'Macro cycling', frequency: '5×/week' },
+            advanced:     { workouts: ['Advanced Periodization', 'Peak Performance'], diet: 'Optimized nutrition', frequency: '6×/week' }
         }
     };
-
     return suggestions[goal]?.[experience] || suggestions.weight_loss.beginner;
 }
 
 // ============================================
-// FIREBASE INTEGRATION TEMPLATE
+// CARD INPUT FORMATTING
 // ============================================
 
-/*
-// Initialize Firebase (add your config)
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// Register user function (Firebase)
-async function registerUserFirebase(userData) {
-    try {
-        const userCredential = await auth.createUserWithEmailAndPassword(
-            userData.email,
-            userData.password
-        );
-
-        // Save additional user data to Firestore
-        await db.collection('users').doc(userCredential.user.uid).set({
-            fullName: userData.fullName,
-            email: userData.email,
-            phone: userData.phone,
-            age: userData.age,
-            gender: userData.gender,
-            height: userData.height,
-            weight: userData.weight,
-            goal: userData.goal,
-            experience: userData.experience,
-            plan: selectedPlan,
-            createdAt: new Date(),
-            stripeCustomerId: null
+document.addEventListener('DOMContentLoaded', () => {
+    const cardNum = document.getElementById('cardNumber');
+    if (cardNum) {
+        cardNum.addEventListener('input', e => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 16);
         });
-
-        return userCredential.user.uid;
-    } catch (error) {
-        console.error('Registration error:', error);
-        throw error;
     }
-}
 
-// Login user function (Firebase)
-async function loginUserFirebase(email, password) {
-    try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        return userCredential.user;
-    } catch (error) {
-        console.error('Login error:', error);
-        throw error;
+    const cardExp = document.getElementById('cardExpiry');
+    if (cardExp) {
+        cardExp.addEventListener('input', e => {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length >= 2) v = v.slice(0, 2) + '/' + v.slice(2, 4);
+            e.target.value = v;
+        });
     }
-}
-*/
 
-// ============================================
-// RAZORPAY/STRIPE PAYMENT INTEGRATION TEMPLATE
-// ============================================
+    const cardCVC = document.getElementById('cardCVC');
+    if (cardCVC) {
+        cardCVC.addEventListener('input', e => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 3);
+        });
+    }
 
-/*
-// Razorpay Integration
-function processPaymentWithRazorpay() {
-    const options = {
-        key: 'YOUR_RAZORPAY_KEY',
-        amount: selectedPlan.price * 100, // Amount in paise
-        currency: 'INR',
-        name: 'Fitness Hub',
-        description: `${selectedPlan.name} Membership`,
-        prefill: {
-            name: userFormData.fullName,
-            email: userFormData.email,
-            contact: userFormData.phone
-        },
-        handler: function(response) {
-            // Payment successful
-            verifyPayment(response.razorpay_payment_id);
-        }
-    };
+    // Register page: reset form on load
+    if (window.location.pathname.includes('register.html')) {
+        clearRegistrationForm();
+        setTimeout(() => {
+            document.querySelectorAll('input').forEach(i => { i.value = ''; });
+            document.querySelectorAll('select').forEach(s => { s.selectedIndex = 0; });
+            document.getElementById('fullName')?.focus();
+        }, 50);
+    }
 
-    const rzp = new Razorpay(options);
-    rzp.open();
-}
-
-// Stripe Integration
-function processPaymentWithStripe() {
-    const stripe = Stripe('YOUR_STRIPE_PUBLIC_KEY');
-    const elements = stripe.elements();
-    const cardElement = elements.create('card');
-
-    // Create payment method and process
-    stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-        billing_details: {
-            name: userFormData.fullName,
-            email: userFormData.email
-        }
-    }).then(function(result) {
-        if (result.paymentMethod) {
-            completeStripePayment(result.paymentMethod.id);
-        }
-    });
-}
-*/
+    // Enter key submission on login
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('keypress', e => {
+            if (e.key === 'Enter') { e.preventDefault(); handleLogin(); }
+        });
+    }
+});

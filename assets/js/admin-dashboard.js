@@ -9,7 +9,10 @@ function getAdminDatabase() {
     const stored = localStorage.getItem(ADMIN_DB_KEY);
     if (stored) {
         try {
-            return JSON.parse(stored);
+            const parsed = JSON.parse(stored);
+            if (parsed && Object.keys(parsed).length > 0) {
+                return parsed;
+            }
         } catch (e) {
             console.log('Error parsing admin database');
         }
@@ -149,9 +152,45 @@ function loadAllUsers() {
     }
 }
 
-function loadFromLocalStorage() {
+function getMergedUsers() {
+    // Try primary multi-user database first (object format)
+    const dbRaw = localStorage.getItem('fitnesshub_database');
+    const userDb = dbRaw ? JSON.parse(dbRaw) : {};
+    
+    // Try legacy array format
     const registeredUsersStr = localStorage.getItem('fitnesshub_registered_users');
-    allUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : [];
+    const legacyUsers = registeredUsersStr ? JSON.parse(registeredUsersStr) : [];
+
+    // Merge both sources (prefer database records as they are newer)
+    const mergedMap = new Map();
+    
+    // Process legacy array first
+    legacyUsers.forEach(u => {
+        if (u.email) {
+            const emailKey = u.email.toLowerCase();
+            mergedMap.set(emailKey, u);
+        }
+    });
+    
+    // Override with object database records (primary registration storage)
+    Object.values(userDb).forEach(u => {
+        if (u.email) {
+            const emailKey = u.email.toLowerCase();
+            // Ensure compatibility between formats if needed
+            const record = { ...u };
+            if (typeof record.plan === 'object' && record.plan.type) {
+                record.planType = record.plan.type; // compatibility
+            }
+            mergedMap.set(emailKey, record);
+        }
+    });
+
+    return Array.from(mergedMap.values());
+}
+
+function loadFromLocalStorage() {
+    allUsers = getMergedUsers();
+    console.log(`✅ Loaded ${allUsers.length} users from local storage`);
 }
 
 function displayUsers() {
@@ -192,7 +231,10 @@ function displayUsers() {
                     <br>
                     <small>
                         <i class="fas fa-crown"></i> Plan: <strong>${userData?.plan?.type || 'N/A'}</strong> | 
-                        <i class="fas fa-calendar"></i> Joined: ${formatDate(user.registrationDate)}
+                        <i class="fas fa-calendar"></i> Joined: ${formatDate(user.registrationDate)} |
+                        <span class="badge ${userData?.isPaid ? 'bg-success' : 'bg-warning'}">
+                            ${userData?.isPaid ? 'PAID' : 'PENDING'}
+                        </span>
                     </small>
                     <br>
                     <small style="color: #ffc107;">
@@ -222,33 +264,18 @@ function displayUsers() {
 // ============================================
 
 function getUserFullData(email) {
-    // Try to get from Supabase first (most up-to-date)
-    if (typeof getUsers === 'function' && typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
-        // Note: This is async, but for now we'll use localStorage as primary
-        console.log('Loading user data for admin display...');
+    if (!email) return null;
+    const emailLC = email.toLowerCase();
+    
+    // Check our allUsers array (if it's already loaded)
+    let user = allUsers.find(u => u.email && u.email.toLowerCase() === emailLC);
+    if (!user) {
+        // Try getting fresh merged data
+        const freshUsers = getMergedUsers();
+        user = freshUsers.find(u => u.email && u.email.toLowerCase() === emailLC);
     }
     
-    // Try to find in localStorage first
-    const allUsersData = localStorage.getItem('fitnesshub_registered_users');
-    if (allUsersData) {
-        const users = JSON.parse(allUsersData);
-        const user = users.find(u => u.email === email);
-        if (user) return user;
-    }
-    
-    // If not found in registered users, try to get from the current user's personal data storage
-    const sessionData = localStorage.getItem('fitnesshub_session');
-    if (sessionData) {
-        const session = JSON.parse(sessionData);
-        if (session.email === email) {
-            const userData = localStorage.getItem('fitnesshub_user');
-            if (userData) {
-                return JSON.parse(userData);
-            }
-        }
-    }
-    
-    return null;
+    return user || null;
 }
 
 // ============================================
@@ -256,29 +283,24 @@ function getUserFullData(email) {
 // ============================================
 
 function updateStatistics() {
-    const registeredUsersStr = localStorage.getItem('fitnesshub_registered_users');
-    const users = registeredUsersStr ? JSON.parse(registeredUsersStr) : [];
+    const users = getMergedUsers();
 
     // Total Users
     document.getElementById('totalUsers').textContent = users.length;
 
-    // Active Users (logged in recently)
-    const activeUsers = users.filter(u => {
-        const regDate = new Date(u.registrationDate);
-        const daysSinceReg = (new Date() - regDate) / (1000 * 60 * 60 * 24);
-        return daysSinceReg < 30; // Active in last 30 days
-    }).length;
+    // Active Users (With valid membership)
+    const activeUsers = users.filter(u => u.isPaid === true || u.paymentStatus === 'completed' || u.paymentStatus === 'paid').length;
     document.getElementById('activeUsers').textContent = activeUsers;
 
     // Premium Users
-    const premiumUsers = users.filter(u => u.plan === 'professional' || u.plan === 'elite').length;
+    const premiumUsers = users.filter(u => (u.isPaid === true || u.paymentStatus === 'completed' || u.paymentStatus === 'paid') && (u.plan === 'professional' || u.plan === 'elite')).length;
     document.getElementById('premiumUsers').textContent = premiumUsers;
 
     // Total Revenue - ONLY from PAID members (isPaid = true)
     let totalRevenue = 0;
     users.forEach(u => {
         // Only count revenue from members who have actually paid
-        if (u.isPaid === true || u.paymentStatus === 'completed') {
+        if (u.isPaid === true || u.paymentStatus === 'completed' || u.paymentStatus === 'paid') {
             const planPrices = { starter: 999, professional: 1999, elite: 2999 };
             const planType = typeof u.plan === 'object' ? u.plan.type : u.plan;
             totalRevenue += planPrices[planType] || 0;
@@ -298,11 +320,14 @@ function loadAndDisplayActiveMembers() {
     if (!container) return;
 
     // Get all users
-    const registeredUsersStr = localStorage.getItem('fitnesshub_registered_users');
-    const users = registeredUsersStr ? JSON.parse(registeredUsersStr) : [];
+    const users = getMergedUsers();
 
-    // Filter only active members (isPaid = true)
-    const activeMembers = users.filter(u => u.isPaid === true || u.paymentStatus === 'completed');
+    // Filter only active members (isPaid = true or status completed/paid)
+    const activeMembers = users.filter(u => 
+        u.isPaid === true || 
+        u.paymentStatus === 'completed' || 
+        u.paymentStatus === 'paid'
+    );
 
     if (activeMembers.length === 0) {
         noMembersMsg.style.display = 'block';
@@ -325,8 +350,8 @@ function loadAndDisplayActiveMembers() {
 
         const memberCard = document.createElement('div');
         memberCard.className = 'user-card';
-        memberCard.style.backgroundColor = 'rgba(40, 167, 69, 0.1)';
-        memberCard.style.borderLeft = '4px solid #28a745';
+        memberCard.style.backgroundColor = 'var(--bg-secondary)';
+        memberCard.style.borderLeft = '4px solid #CCFF00';
         
         memberCard.innerHTML = `
             <div class="user-info">
@@ -363,7 +388,10 @@ function loadAndDisplayActiveMembers() {
                         <i class="fas fa-phone"></i> Contact
                     </button>
                     <button class="btn-manage" onclick="openEditUserModal('${user.email}')" style="flex: 1;">
-                        <i class="fas fa-edit"></i> Manage
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn-manage" onclick="deleteUser('${user.email}')" style="flex: 0 0 40px; background-color: #ff4444; color: white;">
+                        <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
             </div>
@@ -383,11 +411,14 @@ function loadAndDisplayPendingMembers() {
     if (!container) return;
 
     // Get all users
-    const registeredUsersStr = localStorage.getItem('fitnesshub_registered_users');
-    const users = registeredUsersStr ? JSON.parse(registeredUsersStr) : [];
+    const users = getMergedUsers();
 
-    // Filter only pending members (isPaid = false or undefined)
-    const pendingMembers = users.filter(u => u.isPaid !== true && u.paymentStatus !== 'completed');
+    // Filter only pending members (neither isPaid nor status completed/paid)
+    const pendingMembers = users.filter(u => 
+        u.isPaid !== true && 
+        u.paymentStatus !== 'completed' && 
+        u.paymentStatus !== 'paid'
+    );
 
     if (pendingMembers.length === 0) {
         noMembersMsg.style.display = 'block';
@@ -410,7 +441,7 @@ function loadAndDisplayPendingMembers() {
 
         const memberCard = document.createElement('div');
         memberCard.className = 'user-card';
-        memberCard.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+        memberCard.style.backgroundColor = 'var(--bg-secondary)';
         memberCard.style.borderLeft = '4px solid #ffc107';
         
         memberCard.innerHTML = `
@@ -442,9 +473,17 @@ function loadAndDisplayPendingMembers() {
                         <strong>BMI: ${bmi}</strong>
                     </small>
                 </div>
-                <button class="btn-manage" onclick="contactPendingMember('${user.email}')">
-                    <i class="fas fa-phone"></i> Contact
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-manage" onclick="contactPendingMember('${user.email}')" style="flex: 1;">
+                        <i class="fas fa-phone"></i> Contact
+                    </button>
+                    <button class="btn-manage" onclick="openEditUserModal('${user.email}')" style="flex: 1;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button class="btn-manage" onclick="deleteUser('${user.email}')" style="flex: 0 0 40px; background-color: #ff4444; color: white;">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
             </div>
         `;
         container.appendChild(memberCard);
@@ -576,21 +615,36 @@ function saveUserChanges() {
     // Save assignments to localStorage immediately
     localStorage.setItem(`user_${email}_assignments`, JSON.stringify(assignments));
 
-    // Update user plan in localStorage
+    // Update user plan in localStorage (Legacy Array Format)
     const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
+    let usersArray = [];
     if (registeredUsers) {
         try {
-            const users = JSON.parse(registeredUsers);
-            const userIndex = users.findIndex(u => u.email === email);
+            usersArray = JSON.parse(registeredUsers);
+            const userIndex = usersArray.findIndex(u => u.email === email);
             if (userIndex >= 0) {
-                // Update the plan for this user
-                users[userIndex].plan = newPlan;
-                localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
-                console.log(`✅ Plan updated to "${newPlan}" for ${email}`);
+                usersArray[userIndex].plan = newPlan;
+                usersArray[userIndex].fullName = document.getElementById('editUserName').value;
+                usersArray[userIndex].phone = document.getElementById('editUserPhone').value;
+                localStorage.setItem('fitnesshub_registered_users', JSON.stringify(usersArray));
             }
-        } catch (err) {
-            console.error('Error updating user plan in localStorage:', err);
-        }
+        } catch (err) { console.error('Error updating users array:', err); }
+    }
+
+    // Update user plan in localStorage (Primary Object Database)
+    const dbRaw = localStorage.getItem('fitnesshub_database');
+    if (dbRaw) {
+        try {
+            const db = JSON.parse(dbRaw);
+            const emailKey = email.toLowerCase();
+            if (db[emailKey]) {
+                db[emailKey].plan = { type: newPlan, name: newPlan.charAt(0).toUpperCase() + newPlan.slice(1) + ' Plan' };
+                db[emailKey].fullName = document.getElementById('editUserName').value;
+                db[emailKey].phone = document.getElementById('editUserPhone').value;
+                localStorage.setItem('fitnesshub_database', JSON.stringify(db));
+                console.log(`✅ Database updated for ${email}`);
+            }
+        } catch (err) { console.error('Error updating object database:', err); }
     }
 
     // Also update user profile in Supabase if configured
@@ -719,40 +773,28 @@ function deleteUser() {
 // ============================================
 
 function adminLogout() {
+    console.log('🔄 Admin logout sequence initiated...');
+    const adminSession = localStorage.getItem('fitnesshub_admin_session');
+
     if (confirm('Are you sure you want to logout?')) {
-        // Get email from admin session
-        const adminSession = localStorage.getItem('fitnesshub_admin_session');
-        if (adminSession) {
+        // Invalidate on server if possible
+        if (adminSession && typeof apiLogoutUser === 'function') {
             try {
                 const sessionData = JSON.parse(adminSession);
-                // Invalidate session on server
-                if (typeof apiLogoutUser === 'function') {
-                    apiLogoutUser(sessionData.email)
-                        .then(result => {
-                            console.log('✅ Admin session invalidated on server');
-                        })
-                        .catch(error => {
-                            console.error('❌ Error invalidating admin session:', error);
-                        })
-                        .finally(() => {
-                            localStorage.removeItem('fitnesshub_admin_session');
-                            window.location.href = '../pages/admin-login.html';
-                        });
-                } else {
-                    localStorage.removeItem('fitnesshub_admin_session');
-                    window.location.href = '../pages/admin-login.html';
-                }
-            } catch (error) {
-                console.error('Error parsing admin session:', error);
-                localStorage.removeItem('fitnesshub_admin_session');
-                window.location.href = '../pages/admin-login.html';
+                apiLogoutUser(sessionData.email);
+            } catch (e) {
+                console.error('Error in apiLogoutUser call:', e);
             }
-        } else {
-            localStorage.removeItem('fitnesshub_admin_session');
-            window.location.href = '../pages/admin-login.html';
         }
+
+        // Clear session immediately
+        localStorage.removeItem('fitnesshub_admin_session');
+        console.log('✅ Admin session cleared, redirecting to login...');
+        window.location.href = 'admin-login.html'; 
     }
 }
+// Expose to window to ensure visibility
+window.adminLogout = adminLogout;
 
 // ============================================
 // DELETE ADMIN ACCOUNT
@@ -909,17 +951,17 @@ function loadDietPlans() {
     dietPlans.forEach(plan => {
         const planCard = document.createElement('div');
         planCard.style.cssText = `
-            background: linear-gradient(135deg, ${plan.color}40 0%, ${plan.color}20 100%);
+            background: var(--bg-secondary);
             border: 2px solid ${plan.color};
-            border-radius: 12px;
+            border-radius: 0px;
             padding: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
         `;
         
         planCard.onmouseover = () => {
-            planCard.style.transform = 'translateY(-8px)';
-            planCard.style.boxShadow = `0 8px 20px ${plan.color}40`;
+            planCard.style.transform = 'translateY(-4px)';
+            planCard.style.boxShadow = `4px 4px 0px ${plan.color}`;
         };
         
         planCard.onmouseout = () => {
@@ -960,17 +1002,17 @@ function loadWorkoutPlans() {
     workoutPlans.forEach(plan => {
         const planCard = document.createElement('div');
         planCard.style.cssText = `
-            background: linear-gradient(135deg, ${plan.color}40 0%, ${plan.color}20 100%);
+            background: var(--bg-secondary);
             border: 2px solid ${plan.color};
-            border-radius: 12px;
+            border-radius: 0px;
             padding: 20px;
             cursor: pointer;
             transition: all 0.3s ease;
         `;
         
         planCard.onmouseover = () => {
-            planCard.style.transform = 'translateY(-8px)';
-            planCard.style.boxShadow = `0 8px 20px ${plan.color}40`;
+            planCard.style.transform = 'translateY(-4px)';
+            planCard.style.boxShadow = `4px 4px 0px ${plan.color}`;
         };
         
         planCard.onmouseout = () => {
@@ -1042,3 +1084,60 @@ function formatDate(dateString) {
         day: 'numeric'
     });
 }
+
+/**
+ * Deletes a user from the system
+ * @param {string} email - Email of the user to delete
+ */
+function deleteUser(email) {
+    if (!confirm(`Are you sure you want to delete the user with email ${email}? This action cannot be undone.`)) {
+        return;
+    }
+
+    try {
+        // 1. Remove from Primary Database (Object-based)
+        const db = JSON.parse(localStorage.getItem('fitnesshub_database') || '{}');
+        if (db[email]) {
+            delete db[email];
+            localStorage.setItem('fitnesshub_database', JSON.stringify(db));
+        }
+
+        // 2. Remove from Legacy Array (fitnesshub_registered_users)
+        let users = JSON.parse(localStorage.getItem('fitnesshub_registered_users') || '[]');
+        const updatedUsers = users.filter(user => (user.email || user.userEmail) !== email);
+        localStorage.setItem('fitnesshub_registered_users', JSON.stringify(updatedUsers));
+
+        // 3. Clear session if it's the current user (edge case)
+        const session = JSON.parse(localStorage.getItem('fitnesshub_session') || '{}');
+        if (session.email === email) {
+            localStorage.removeItem('fitnesshub_session');
+            localStorage.removeItem('fitnesshub_user');
+        }
+
+        // 4. Remove from Payment History (Pura Account Purge - allows re-registration)
+        try {
+            let history = JSON.parse(localStorage.getItem('fitnesshub_payment_history') || '[]');
+            const updatedHistory = history.filter(p => (p.email || p.userEmail) !== email);
+            localStorage.setItem('fitnesshub_payment_history', JSON.stringify(updatedHistory));
+        } catch (e) { console.warn('History clear failed during delete:', e); }
+
+        alert('Account Purged Successfully. The user can now register again as a new member.');
+        
+        // Refresh the views
+        if (typeof loadStats === 'function') loadStats();
+        if (typeof loadAllUsers === 'function') loadAllUsers();
+        if (typeof loadAndDisplayActiveMembers === 'function') loadAndDisplayActiveMembers();
+        if (typeof loadAndDisplayPendingMembers === 'function') loadAndDisplayPendingMembers();
+        
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        alert('Failed to delete user. Please check console for details.');
+    }
+}
+
+// Global scope availability
+window.deleteUser = deleteUser;
+window.contactPendingMember = typeof contactPendingMember !== 'undefined' ? contactPendingMember : undefined;
+window.openEditUserModal = typeof openEditUserModal !== 'undefined' ? openEditUserModal : undefined;
+window.saveUserEdits = typeof saveUserEdits !== 'undefined' ? saveUserEdits : undefined;
+window.closeEditModal = typeof closeEditModal !== 'undefined' ? closeEditModal : undefined;

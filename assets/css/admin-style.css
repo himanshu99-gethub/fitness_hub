@@ -1,0 +1,288 @@
+/* Kinetic Brutalism Admin Dashboard Styles — Navy-Purple Gradient Theme */
+/* Design tokens are inherited from dashboard-style.css which is loaded first */
+
+.admin-container {
+    background-color: var(--primary-dark, #0f172a);
+    color: var(--text-light, #e2e8f0);
+    min-height: 100vh;
+}
+
+.admin-header {
+    background-color: var(--secondary-dark, #1e293b);
+    padding: 35px;
+    margin-bottom: 30px;
+}
+
+.admin-header h2 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--neon-green, #22d3ee);
+}
+
+.admin-header p {
+    opacity: 0.9;
+    margin: 0;
+    color: var(--text-muted, #888888);
+}
+
+.stat-box {
+    background-color: var(--secondary-dark, #131313);
+    padding: 25px;
+    text-align: center;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+}
+
+.stat-box:hover {
+    background-color: var(--tertiary-dark, #1a1a1a);
+    transform: translateY(-4px);
+}
+
+.stat-box h3 {
+    color: var(--neon-green, #CCFF00);
+    font-size: 40px;
+    font-weight: 700;
+    margin: 15px 0;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.stat-box p {
+    color: var(--text-light, #ffffff);
+    margin: 0;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.user-card {
+    background-color: var(--secondary-dark, #131313);
+    padding: 22px;
+    margin-bottom: 15px;
+    transition: all 0.2s ease;
+}
+
+.user-card:hover {
+    background-color: var(--tertiary-dark, #1a1a1a);
+}
+
+.user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.user-details h5 {
+    color: var(--text-light, #ffffff);
+    margin-bottom: 5px;
+    font-weight: 700;
+}
+
+.user-details small {
+    color: var(--text-muted, #888888);
+}
+
+.btn-manage {
+    background-color: transparent;
+    color: var(--neon-green, #CCFF00);
+    border: 1px solid var(--neon-green, #CCFF00);
+    padding: 8px 15px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-radius: 0 !important;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.btn-manage:hover {
+    background-color: var(--neon-green, #CCFF00);
+    color: var(--primary-dark, #0e0e0e);
+}
+
+.btn-delete {
+    background-color: transparent;
+    color: var(--danger, #ff4444);
+    border: 1px solid var(--danger, #ff4444);
+    padding: 8px 15px;
+    transition: all 0.3s ease;
+    border-radius: 0 !important;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+}
+
+.btn-delete:hover {
+    background-color: var(--danger, #ff4444);
+    color: var(--text-light, #ffffff);
+}
+
+.modal-content {
+    background-color: var(--secondary-dark, #131313);
+    color: var(--text-light, #ffffff);
+    border: 1px solid var(--tertiary-dark, #1a1a1a);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--tertiary-dark, #1a1a1a);
+}
+
+.modal-title {
+    color: var(--neon-green, #CCFF00);
+    font-family: 'Space Grotesk', sans-serif;
+    text-transform: uppercase;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--tertiary-dark, #1a1a1a);
+}
+
+.form-control, .form-select {
+    background-color: var(--primary-dark, #0e0e0e) !important;
+    border: 1px solid var(--tertiary-dark, #1a1a1a);
+    color: var(--text-light, #ffffff) !important;
+    border-radius: 0 !important;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--neon-green, #CCFF00);
+    box-shadow: none;
+    background-color: var(--primary-dark, #0e0e0e);
+}
+
+.form-control:disabled {
+    background-color: var(--tertiary-dark, #1a1a1a) !important;
+    opacity: 0.7;
+}
+
+.alert-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+    border: 1px solid #ffc107;
+    border-radius: 0 !important;
+}
+
+.alert-danger {
+    background-color: rgba(255, 68, 68, 0.1);
+    color: #ff4444;
+    border: 1px solid #ff4444;
+    border-radius: 0 !important;
+}
+
+.nav-tabs {
+    border-bottom: 1px solid var(--tertiary-dark, #1a1a1a);
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-muted, #888888);
+    border: 1px solid transparent;
+    font-family: 'Space Grotesk', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 20px;
+    transition: all 0.3s ease;
+    border-radius: 0 !important;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--text-light, #ffffff);
+    background-color: var(--secondary-dark, #131313);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-dark, #0e0e0e);
+    background-color: var(--neon-green, #CCFF00) !important;
+    border-color: transparent;
+}
+
+.text-neon-bold {
+    color: var(--neon-green, #CCFF00);
+    font-weight: 700;
+}
+
+.bmi-value {
+    color: var(--neon-green, #CCFF00);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+/* --- Added classes to remove inline styles in admin-dashboard.html --- */
+
+.admin-navbar {
+    background-color: var(--secondary-dark, #131313);
+    padding: 15px 0;
+}
+
+.admin-section {
+    padding: 30px;
+}
+
+.admin-panel {
+    background-color: var(--secondary-dark, #131313);
+    padding: 30px;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.panel-header h4 {
+    margin: 0;
+    color: var(--neon-green, #CCFF00);
+}
+
+.admin-subpanel {
+    padding: 20px;
+    background-color: var(--primary-dark, #0e0e0e);
+}
+
+.subpanel-title {
+    margin-bottom: 20px;
+    color: var(--neon-green, #CCFF00);
+}
+
+.alert-brutalist {
+    background-color: var(--secondary-dark, #131313);
+    color: var(--text-light, #ffffff);
+    font-family: 'Space Grotesk', sans-serif;
+    text-transform: uppercase;
+    border-radius: 0;
+    margin-top: 20px;
+}
+
+.grid-display-wide {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.grid-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.stats-icon-users { font-size: 40px; color: #667eea; }
+.stats-icon-active { font-size: 40px; color: #00a86b; }
+.stats-icon-premium { font-size: 40px; color: #ffd700; }
+.stats-icon-revenue { font-size: 40px; color: #ff6b6b; }
+
+.brutalist-info {
+    background-color: var(--secondary-dark, #131313);
+    padding: 15px;
+}
+
+.brutalist-info-text {
+    font-family: 'Space Grotesk', sans-serif;
+    text-transform: uppercase;
+    color: var(--text-light, #ffffff);
+}
+

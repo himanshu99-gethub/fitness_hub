@@ -1,13 +1,21 @@
-// ============================================
-// FITNESS HUB - EMAIL OTP SERVER
-// Node.js Backend with SQLite Database
-// ============================================
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const dotenv = require('dotenv');
+const mysql = require('mysql2');
+const admin = require('firebase-admin');
+
+dotenv.config();
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(__dirname));
 
 // ==============================================
 // DATABASE SETUP (MySQL)
 // ==============================================
-
-const mysql = require('mysql2');
 
 const db = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
@@ -24,30 +32,6 @@ function runQuery(sql, params = [], callback) {
     db.query(sql, params, (err, results) => {
         callback && callback(err, results);
     });
-}
-            
-            if (row.attempts >= 5) {
-                db.run(`DELETE FROM otps WHERE id = ?`, [row.id]);
-                callback({ valid: false, message: 'Too many attempts. Request new OTP.' });
-                return;
-            }
-            
-            if (row.otp !== otp) {
-                db.run(`UPDATE otps SET attempts = attempts + 1 WHERE id = ?`, [row.id]);
-                callback({ valid: false, message: 'Invalid OTP' });
-                return;
-            }
-            
-            // Mark as verified
-            db.run(`UPDATE otps SET verified = 1 WHERE id = ?`, [row.id]);
-            callback({ valid: true, message: 'OTP verified successfully' });
-        }
-    );
-}
-
-// Get user by email
-function getUserByEmail(email, callback) {
-    db.get(`SELECT * FROM users WHERE email = ?`, [email], callback);
 }
 
 // Get user by email
@@ -178,10 +162,11 @@ app.get('/', (req, res) => {
 });
 
 // Health Check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
         message: 'Fitness Hub Email Server is running',
+        database: 'MySQL',
         timestamp: new Date().toISOString()
     });
 });

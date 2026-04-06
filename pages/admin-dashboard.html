@@ -6,250 +6,14 @@
     <title>Admin Dashboard - Fitness Hub</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;700;900&display=swap" rel="stylesheet">
     <link href="../assets/css/dashboard-style.css" rel="stylesheet">
     <!-- Supabase removed -->
-    <style>
-        * {
-            font-family: 'Poppins', sans-serif;
-        }
-
-        .admin-container {
-            background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
-            color: #fff;
-            min-height: 100vh;
-        }
-        
-        .admin-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 35px;
-            margin-bottom: 30px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.2);
-        }
-
-        .admin-header h2 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-
-        .admin-header p {
-            opacity: 0.9;
-            margin: 0;
-        }
-        
-        .stat-box {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            padding: 25px;
-            border-radius: 12px;
-            text-align: center;
-            border-left: 5px solid #667eea;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s ease;
-        }
-
-        .stat-box:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-        
-        .stat-box h3 {
-            color: #4fc3f7;
-            font-size: 36px;
-            font-weight: 700;
-            margin: 15px 0;
-        }
-        
-        .stat-box p {
-            color: #b0bec5;
-            margin: 0;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .user-card {
-            background: linear-gradient(135deg, #1a2845 0%, #16213e 100%);
-            padding: 22px;
-            border-radius: 12px;
-            border-left: 5px solid #00d4ff;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: all 0.3s ease;
-        }
-        
-        .user-card:hover {
-            transform: translateX(8px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
-            border-left-color: #667eea;
-        }
-        
-        .user-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .user-details h5 {
-            color: #fff;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        
-        .user-details small {
-            color: #90a4ae;
-            font-size: 12px;
-        }
-
-        .user-meta {
-            display: flex;
-            gap: 15px;
-            font-size: 13px;
-        }
-
-        .user-meta-item {
-            color: #90a4ae;
-        }
-
-        .user-meta-item strong {
-            color: #4fc3f7;
-        }
-        
-        .btn-manage {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            padding: 10px 18px;
-            border-radius: 6px;
-            font-size: 13px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-manage:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-            color: white;
-        }
-        
-        .modal-content {
-            background: linear-gradient(135deg, #1a2845 0%, #16213e 100%);
-            color: white;
-            border: 2px solid #667eea;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        }
-        
-        .modal-header {
-            border-bottom: 2px solid #667eea;
-            padding: 25px;
-        }
-
-        .modal-header h5 {
-            font-weight: 700;
-            color: #4fc3f7;
-        }
-        
-        .form-control, .form-select {
-            background: #0f3460;
-            border: 2px solid #2a5298;
-            color: white;
-            border-radius: 8px;
-            padding: 12px 15px;
-            transition: all 0.3s ease;
-        }
-
-        .form-control::placeholder {
-            color: #90a4ae;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            background: #0f3460;
-            border-color: #667eea;
-            color: white;
-            box-shadow: 0 0 0 0.3rem rgba(102, 126, 234, 0.25);
-        }
-
-        .form-label {
-            color: #b0bec5;
-            font-weight: 600;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-        
-        .section-tab {
-            background: linear-gradient(135deg, #1a2845 0%, #16213e 100%);
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            border-left: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-        
-        .section-tab:hover {
-            border-left-color: #667eea;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        }
-        
-        .section-tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-left-color: #fff;
-        }
-
-        .diet-section {
-            background: linear-gradient(135deg, #1a4d2e 0%, #2d6a4f 100%);
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 15px;
-            border: 2px solid #40916c;
-        }
-
-        .diet-item {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 4px solid #81c784;
-        }
-
-        .diet-item strong {
-            color: #81c784;
-        }
-
-        .nav-tabs {
-            border-bottom: 2px solid #2a5298;
-        }
-
-        .nav-tabs .nav-link {
-            color: #90a4ae;
-            border: none;
-            padding: 12px 20px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .nav-tabs .nav-link:hover {
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
-        }
-
-        .nav-tabs .nav-link.active {
-            color: #4fc3f7;
-            border-bottom: 3px solid #667eea;
-            background: transparent;
-        }
-    </style>
+    <link href="../assets/css/admin-style.css" rel="stylesheet">
 </head>
 <body class="admin-container">
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-dark bg-dark sticky-top">
+    <nav class="navbar navbar-dark sticky-top admin-navbar">
         <div class="container-fluid">
             <span class="navbar-brand">
                 <i class="fas fa-shield-alt"></i> Fitness Hub Admin Panel
@@ -260,7 +24,7 @@
         </div>
     </nav>
 
-    <div class="container-fluid" style="padding: 30px;">
+    <div class="container-fluid admin-section">
         <!-- Admin Header -->
         <div class="admin-header">
             <h2><i class="fas fa-chart-line"></i> Management Dashboard</h2>
@@ -271,28 +35,28 @@
         <div class="row mb-4">
             <div class="col-md-3">
                 <div class="stat-box">
-                    <i class="fas fa-users" style="font-size: 40px; color: #667eea;"></i>
+                    <i class="fas fa-users stats-icon-users"></i>
                     <h3 id="totalUsers">0</h3>
                     <p>Total Users</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-box">
-                    <i class="fas fa-user-check" style="font-size: 40px; color: #00a86b;"></i>
+                    <i class="fas fa-user-check stats-icon-active"></i>
                     <h3 id="activeUsers">0</h3>
                     <p>Active Users</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-box">
-                    <i class="fas fa-crown" style="font-size: 40px; color: #ffd700;"></i>
+                    <i class="fas fa-crown stats-icon-premium"></i>
                     <h3 id="premiumUsers">0</h3>
                     <p>Premium Members</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-box">
-                    <i class="fas fa-chart-area" style="font-size: 40px; color: #ff6b6b;"></i>
+                    <i class="fas fa-chart-area stats-icon-revenue"></i>
                     <h3 id="totalRevenue">₹0</h3>
                     <p>Total Revenue</p>
                 </div>
@@ -302,9 +66,9 @@
         <!-- Users Management with Tabs -->
         <div class="row">
             <div class="col-lg-12">
-                <div style="background: linear-gradient(135deg, #1a2845 0%, #16213e 100%); padding: 30px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                        <h4 style="margin: 0; color: #4fc3f7;"><i class="fas fa-users"></i> User Management</h4>
+                <div class="admin-panel">
+                    <div class="panel-header">
+                        <h4><i class="fas fa-users"></i> User Management</h4>
                         <button class="btn btn-sm btn-outline-success" onclick="loadAllUsers()" title="Refresh">
                             <i class="fas fa-sync"></i> Refresh
                         </button>
@@ -338,59 +102,55 @@
                         </li>
                     </ul>
 
-                    <div class="tab-content" style="padding-top: 20px;">
+                    <div class="tab-content pt-4">
                         <!-- Users Tab -->
                         <div class="tab-pane fade show active" id="users-content" role="tabpanel">
                             <div id="usersContainer">
                                 <!-- Users will be loaded here -->
                             </div>
-                            <div id="noUsersMessage" class="alert alert-info" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #4fc3f7;">
+                            <div id="noUsersMessage" class="alert alert-brutalist">
                                 <i class="fas fa-info-circle"></i> No users registered yet.
                             </div>
                         </div>
 
-                        <!-- Active Members Tab -->
                         <div class="tab-pane fade" id="active-members-content" role="tabpanel">
-                            <div style="padding: 20px; background: rgba(0,0,0,0.2); border-radius: 10px;">
-                                <h5 style="margin-bottom: 20px; color: #81c784;"><i class="fas fa-check-circle"></i> Active Members (Paid)</h5>
-                                <div id="activeMembersContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                            <div class="admin-subpanel">
+                                <h5 class="subpanel-title"><i class="fas fa-check-circle"></i> Active Members (Paid)</h5>
+                                <div id="activeMembersContainer" class="grid-display-wide">
                                     <!-- Active members will be loaded here -->
                                 </div>
-                                <div id="noActiveMembersMessage" class="alert alert-info" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #4fc3f7; margin-top: 20px;">
+                                <div id="noActiveMembersMessage" class="alert alert-brutalist">
                                     <i class="fas fa-info-circle"></i> No active members yet.
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Pending Members Tab -->
                         <div class="tab-pane fade" id="pending-members-content" role="tabpanel">
-                            <div style="padding: 20px; background: rgba(0,0,0,0.2); border-radius: 10px;">
-                                <h5 style="margin-bottom: 20px; color: #ffb74d;"><i class="fas fa-clock"></i> Pending Members (Contact for Membership)</h5>
-                                <p style="color: #aaa; margin-bottom: 20px;">These users have registered but haven't purchased a membership yet. You can contact them about membership options.</p>
-                                <div id="pendingMembersContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                            <div class="admin-subpanel">
+                                <h5 class="subpanel-title"><i class="fas fa-clock"></i> Pending Members (Contact for Membership)</h5>
+                                <p class="brutalist-info-text mb-4">These users have registered but haven't purchased a membership yet. You can contact them about membership options.</p>
+                                <div id="pendingMembersContainer" class="grid-display-wide">
                                     <!-- Pending members will be loaded here -->
                                 </div>
-                                <div id="noPendingMembersMessage" class="alert alert-info" style="background: rgba(33, 150, 243, 0.1); border-color: #2196f3; color: #4fc3f7; margin-top: 20px;">
+                                <div id="noPendingMembersMessage" class="alert alert-brutalist">
                                     <i class="fas fa-info-circle"></i> No pending members.
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Diet Plans Tab -->
                         <div class="tab-pane fade" id="diet-content" role="tabpanel">
-                            <div id="dietContainer" style="padding: 20px; background: rgba(0,0,0,0.2); border-radius: 10px;">
-                                <h5 style="margin-bottom: 20px; color: #81c784;"><i class="fas fa-utensils"></i> Diet Plans Overview</h5>
-                                <div id="dietPlansDisplay" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                            <div id="dietContainer" class="admin-subpanel">
+                                <h5 class="subpanel-title"><i class="fas fa-utensils"></i> Diet Plans Overview</h5>
+                                <div id="dietPlansDisplay" class="grid-display">
                                     <!-- Diet plans will be loaded here -->
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Workouts Tab -->
                         <div class="tab-pane fade" id="workouts-content" role="tabpanel">
-                            <div id="workoutsContainer" style="padding: 20px; background: rgba(0,0,0,0.2); border-radius: 10px;">
-                                <h5 style="margin-bottom: 20px; color: #64b5f6;"><i class="fas fa-dumbbell"></i> Workout Plans Overview</h5>
-                                <div id="workoutPlansDisplay" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                            <div id="workoutsContainer" class="admin-subpanel">
+                                <h5 class="subpanel-title"><i class="fas fa-dumbbell"></i> Workout Plans Overview</h5>
+                                <div id="workoutPlansDisplay" class="grid-display">
                                     <!-- Workouts will be loaded here -->
                                 </div>
                             </div>
@@ -403,130 +163,148 @@
 
     <!-- Edit User Modal -->
     <div class="modal fade" id="editUserModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
+        <div class="modal-dialog modal-xl modal-dialog-centered"> <!-- XL and Centered for better fit -->
+            <div class="modal-content border-0">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-user-edit"></i> Manage User</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title"><i class="fas fa-user-edit"></i> Manage User Profile</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" title="Close Modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4">
                     <form id="editUserForm">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Full Name</label>
-                                <input type="text" class="form-control" id="editUserName" disabled>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Email</label>
-                                <input type="email" class="form-control" id="editUserEmail" disabled>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Phone</label>
-                                <input type="text" class="form-control" id="editUserPhone" disabled>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Membership Plan</label>
-                                <select class="form-control" id="editUserPlan">
-                                    <option value="starter">Starter</option>
-                                    <option value="professional">Professional</option>
-                                    <option value="elite">Elite</option>
-                                </select>
-                            </div>
-
-                            <!-- Fitness Information Section -->
-                            <div class="col-12 mb-3">
-                                <hr>
-                                <h6 style="color: #ffc107;"><i class="fas fa-dumbbell"></i> Fitness Information</h6>
-                            </div>
-
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label"><i class="fas fa-birthday-cake"></i> Age</label>
-                                <input type="number" class="form-control" id="editUserAge" disabled>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label"><i class="fas fa-male"></i> Gender</label>
-                                <input type="text" class="form-control" id="editUserGender" disabled>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label"><i class="fas fa-weight"></i> Weight (kg)</label>
-                                <input type="number" class="form-control" id="editUserWeight" disabled>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label"><i class="fas fa-ruler-vertical"></i> Height (cm)</label>
-                                <input type="number" class="form-control" id="editUserHeight" disabled>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-bullseye"></i> Fitness Goal</label>
-                                <input type="text" class="form-control" id="editUserGoal" disabled>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-book"></i> Experience Level</label>
-                                <input type="text" class="form-control" id="editUserExperience" disabled>
-                            </div>
-
-                            <div class="col-12 mb-3">
-                                <div style="background: #0f3460; padding: 10px; border-radius: 8px; border-left: 4px solid #ffc107;">
-                                    <small><strong>BMI:</strong> <span id="editUserBMI" style="color: #ffc107;">-</span></small>
+                        <div class="row g-3"> <!-- Using gap-3 for tighter spacing -->
+                            
+                            <!-- Primary Identity Section -->
+                            <div class="col-lg-4">
+                                <div class="admin-subpanel mb-0 h-100">
+                                    <h6 class="text-neon-bold mb-3"><i class="fas fa-id-card"></i> Identity & Contact</h6>
+                                    <div class="mb-2">
+                                        <label class="form-label mb-1" for="editUserName">Full Name</label>
+                                        <input type="text" class="form-control py-2" id="editUserName" disabled title="Full Name">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label mb-1" for="editUserEmail">Email Address</label>
+                                        <input type="email" class="form-control py-2" id="editUserEmail" disabled title="Email">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label mb-1" for="editUserPhone">Phone Number</label>
+                                        <input type="text" class="form-control py-2" id="editUserPhone" disabled title="Phone">
+                                    </div>
+                                    <div class="mb-0">
+                                        <label class="form-label mb-1" for="editUserPlan">Membership Plan</label>
+                                        <select class="form-control py-2" id="editUserPlan" title="Membership Plan">
+                                            <option value="starter">Starter</option>
+                                            <option value="professional">Professional</option>
+                                            <option value="elite">Elite</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Assignment Section -->
-                            <div class="col-12 mb-3">
-                                <hr>
-                                <h6 style="color: #28a745;"><i class="fas fa-tasks"></i> Assign Programs & Track</h6>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-user-tie"></i> Assign Trainer</label>
-                                <select class="form-control" id="editUserTrainer">
-                                    <option value="">Select Trainer</option>
-                                    <option value="Coach Rajesh">Coach Rajesh</option>
-                                    <option value="Coach Amit">Coach Amit</option>
-                                    <option value="Coach Priya">Coach Priya</option>
-                                    <option value="Coach Vikram">Coach Vikram</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-dumbbell"></i> Assign Workout Plan</label>
-                                <select class="form-control" id="editUserWorkout">
-                                    <option value="">Select Workout</option>
-                                    <option value="Cardio Blast">Cardio Blast</option>
-                                    <option value="Strength Training">Strength Training</option>
-                                    <option value="HIIT Training">HIIT Training</option>
-                                    <option value="Yoga & Flexibility">Yoga & Flexibility</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-utensils"></i> Assign Diet Plan</label>
-                                <select class="form-control" id="editUserDiet">
-                                    <option value="">Select Diet Plan</option>
-                                    <option value="Weight Loss">Weight Loss</option>
-                                    <option value="Muscle Gain">Muscle Gain</option>
-                                    <option value="Balanced">Balanced Diet</option>
-                                    <option value="Keto">Keto Diet</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-star"></i> Performance Rating (1-10)</label>
-                                <input type="number" class="form-control" id="editUserPerformance" min="1" max="10">
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label"><i class="fas fa-comment"></i> Progress Notes</label>
-                                <textarea class="form-control" id="editUserNotes" rows="3" placeholder="Add notes about user's progress..."></textarea>
-                            </div>
-
-                            <div class="col-12 mb-3">
-                                <div id="userStats" style="background: #0f3460; padding: 15px; border-radius: 8px;">
-                                    <p><strong>Weight Progress:</strong> <span id="weightProgress">-</span></p>
-                                    <p><strong>Workouts Completed:</strong> <span id="workoutsCompleted">-</span></p>
-                                    <p><strong>Member Since:</strong> <span id="memberSince">-</span></p>
+                            <!-- Fitness Metrics Section -->
+                            <div class="col-lg-4">
+                                <div class="admin-subpanel mb-0 h-100">
+                                    <h6 class="text-neon-bold mb-3"><i class="fas fa-heartbeat"></i> Health & Fitness</h6>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1" for="editUserAge">Age</label>
+                                            <input type="number" class="form-control py-2" id="editUserAge" disabled title="Age">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1" for="editUserGender">Gender</label>
+                                            <input type="text" class="form-control py-2" id="editUserGender" disabled title="Gender">
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-6">
+                                            <label class="form-label mb-1" for="editUserWeight">Weight (kg)</label>
+                                            <input type="number" class="form-control py-2" id="editUserWeight" disabled title="Weight">
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label mb-1" for="editUserHeight">Height (cm)</label>
+                                            <input type="number" class="form-control py-2" id="editUserHeight" disabled title="Height">
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label mb-1" for="editUserGoal">Fitness Goal</label>
+                                        <input type="text" class="form-control py-2" id="editUserGoal" disabled title="Fitness Goal">
+                                    </div>
+                                    <div class="mb-0">
+                                        <div class="alert-brutalist p-2 rounded-0 m-0 border-0 bg-opacity-10 bg-info">
+                                            <small class="text-info"><strong>BMI:</strong> <span id="editUserBMI" class="fw-bold">-</span></small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- Assignments Section -->
+                            <div class="col-lg-4">
+                                <div class="admin-subpanel mb-0 h-100">
+                                    <h6 class="text-neon-bold mb-3"><i class="fas fa-tasks"></i> Assignments</h6>
+                                    <div class="mb-2">
+                                        <label class="form-label mb-1" for="editUserTrainer">Coach/Trainer</label>
+                                        <select class="form-control py-2" id="editUserTrainer" title="Assign Trainer">
+                                            <option value="">Select Trainer</option>
+                                            <option value="Coach Rajesh">Coach Rajesh</option>
+                                            <option value="Coach Amit">Coach Amit</option>
+                                            <option value="Coach Priya">Coach Priya</option>
+                                            <option value="Coach Vikram">Coach Vikram</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label mb-1" for="editUserWorkout">Workout Plan</label>
+                                        <select class="form-control py-2" id="editUserWorkout" title="Assign Workout Plan">
+                                            <option value="">Select Workout</option>
+                                            <option value="Cardio Blast">Cardio Blast</option>
+                                            <option value="Strength Training">Strength Training</option>
+                                            <option value="HIIT Training">HIIT Training</option>
+                                            <option value="Yoga & Flexibility">Yoga & Flexibility</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label mb-1" for="editUserDiet">Diet Plan</label>
+                                        <select class="form-control py-2" id="editUserDiet" title="Assign Diet Plan">
+                                            <option value="">Select Diet</option>
+                                            <option value="Weight Loss">Weight Loss</option>
+                                            <option value="Muscle Gain">Muscle Gain</option>
+                                            <option value="Balanced">Balanced Diet</option>
+                                            <option value="Keto">Keto Diet</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-0">
+                                        <label class="form-label mb-1" for="editUserPerformance">Performance (1-10)</label>
+                                        <input type="number" class="form-control py-2" id="editUserPerformance" min="1" max="10" title="Performance">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Notes and Stats -->
+                            <div class="col-12 mt-3">
+                                <div class="admin-subpanel mb-0">
+                                    <div class="row g-3">
+                                        <div class="col-md-7">
+                                            <label class="form-label mb-1" for="editUserNotes"><i class="fas fa-comment"></i> Progress Notes & Feedback</label>
+                                            <textarea class="form-control py-2" id="editUserNotes" rows="2" placeholder="Enter notes..." title="Progress Notes"></textarea>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <div id="userStats" class="brutalist-info bg-dark bg-opacity-25 p-3 h-100 border-start border-secondary">
+                                                <div class="d-flex justify-content-between mb-1 small">
+                                                    <span class="text-muted">Weight Progress:</span>
+                                                    <span id="weightProgress" class="text-white">-</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-1 small">
+                                                    <span class="text-muted">Workouts Done:</span>
+                                                    <span id="workoutsCompleted" class="text-white">-</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between small">
+                                                    <span class="text-muted">Member Since:</span>
+                                                    <span id="memberSince" class="text-white">-</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </form>
                 </div>
@@ -544,7 +322,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <!-- Supabase config removed -->
+    <script src="../assets/js/api-client.js"></script>
     <script src="../assets/js/admin-dashboard.js"></script>
 </body>
 </html>

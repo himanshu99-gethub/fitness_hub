@@ -8,8 +8,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.css" rel="stylesheet">
     <!-- Supabase removed -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-    <link href="../assets/css/dashboard-style.css" rel="stylesheet" id="themeStylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="../assets/css/dashboard-style.css" rel="stylesheet">
     <style>
         @keyframes pulse {
             0% {
@@ -72,9 +72,6 @@
                 <h2>Welcome Back, <span id="userName">User</span>! 💪</h2>
             </div>
             <div class="top-bar-right">
-                <button class="btn btn-sm btn-outline-secondary" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
-                    <i class="fas fa-sun"></i>
-                </button>
                 <div class="notification-bell">
                     <i class="fas fa-bell"></i>
                     <span class="badge">3</span>
@@ -91,8 +88,8 @@
             <div class="row mb-4">
                 <div class="col-lg-12 mb-4">
                     <div class="dashboard-card">
-                        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                            <h5 style="margin: 0;"><i class="fas fa-user-circle"></i> Your Profile & Membership</h5>
+                        <div class="card-header card-header-flex">
+                            <h5><i class="fas fa-user-circle"></i> Your Profile &amp; Membership</h5>
                             <button class="btn btn-sm btn-success" onclick="openEditProfileModal()">
                                 <i class="fas fa-edit"></i> Edit Profile
                             </button>
@@ -155,9 +152,9 @@
                             </div>
 
             <!-- Fill Profile Section (Mandatory) -->
-            <div class="row mb-4" id="fillProfileSection" style="display: none;">
+            <div class="row mb-4 section-hidden" id="fillProfileSection">
                 <div class="col-lg-12">
-                    <div class="dashboard-card" style="border: 3px solid #ffc107; animation: pulse 2s infinite;">
+                    <div class="dashboard-card card-profile-required">
                         <div class="card-header bg-warning text-dark">
                             <h5><i class="fas fa-exclamation-circle"></i> Complete Your Profile</h5>
                             <small>This information is required to proceed</small>
@@ -171,7 +168,7 @@
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label"><i class="fas fa-envelope"></i> Email *</label>
-                                        <input type="email" class="form-control" id="fillProfileEmail" placeholder="Enter your email" readonly style="background-color: #f0f0f0;">
+                                        <input type="email" class="form-control input-readonly-dim" id="fillProfileEmail" placeholder="Enter your email" readonly>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label"><i class="fas fa-phone"></i> Phone Number *</label>
@@ -185,7 +182,7 @@
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label"><i class="fas fa-venus-mars"></i> Gender *</label>
-                                        <select class="form-control" id="fillProfileGender" required>
+                                        <select class="form-control" id="fillProfileGender" aria-label="Select Gender" title="Gender" required>
                                             <option value="">-- Select Gender --</option>
                                             <option value="Male">Male</option>
                                             <option value="Female">Female</option>
@@ -206,7 +203,7 @@
             </div>
 
             <!-- Dashboard Content (shows after profile is filled) -->
-            <div id="dashboardContentSection" style="display: none;">
+            <div id="dashboardContentSection" class="section-hidden">
             
             <!-- Payment Window Modal (Opens before dashboard) -->
             <div class="modal fade" id="paymentWindowModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -316,12 +313,12 @@
             </div>
 
             <!-- Membership Selection Section (on dashboard - no modal) -->
-            <div class="row mb-4" id="membershipSelectionSection" style="display: none;">
+            <div class="row mb-4 section-hidden" id="membershipSelectionSection">
                 <div class="col-lg-12 mb-4">
                     <div class="dashboard-card">
                         <div class="card-header">
                             <h5><i class="fas fa-crown"></i> Choose Your Membership Plan</h5>
-                            <p class="text-muted mb-0" style="font-size: 13px;">Select a plan that best suits your fitness goals</p>
+                            <p class="text-muted mb-0 text-sm">Select a plan that best suits your fitness goals</p>
                         </div>
                         <div class="card-body">
                             <div class="row" id="membershipPlansGridOnDashboard">
@@ -333,7 +330,7 @@
             </div>
 
             <!-- Payment Section (if not paid) -->
-            <div class="row mb-4" id="paymentSection" style="display: none;">
+            <div class="row mb-4 section-hidden" id="paymentSection">
                 <div class="col-lg-12 mb-4">
                     <div class="dashboard-card">
                         <div class="card-header">
@@ -343,7 +340,7 @@
                             <div class="alert alert-warning alert-dismissible fade show">
                                 <i class="fas fa-exclamation-triangle"></i>
                                 <strong>Action Required!</strong> Your membership plan is pending payment. Complete the payment below to activate your plan.
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Dismiss alert" title="Dismiss"></button>
                             </div>
 
                             <div class="row">
@@ -364,7 +361,7 @@
                                         </div>
                                         <div class="info-row">
                                             <span class="info-label">Total Amount:</span>
-                                            <span class="info-value" id="paymentTotal" style="font-size: 20px;">-</span>
+                                             <span class="info-value info-value-lg" id="paymentTotal">-</span>
                                         </div>
                                     </div>
                                 </div>
@@ -375,7 +372,7 @@
                                         <form id="dashboardPaymentForm">
                                             <div class="mb-3">
                                                 <label class="form-label">Payment Method</label>
-                                                <select class="form-control" id="paymentMethod" required>
+                                                <select class="form-control" id="paymentMethod" aria-label="Select Payment Method" title="Payment Method" required>
                                                     <option value="">Select Payment Method</option>
                                                     <option value="card">Credit/Debit Card</option>
                                                     <option value="upi">UPI</option>
@@ -384,7 +381,7 @@
                                             </div>
 
                                             <!-- Card Payment Form -->
-                                            <div id="cardPaymentDiv" style="display: none;">
+                                            <div id="cardPaymentDiv" class="section-hidden">
                                                 <div class="mb-3">
                                                     <label for="dashCardName" class="form-label">Cardholder Name</label>
                                                     <input type="text" class="form-control" id="dashCardName" placeholder="Name on card">
@@ -406,7 +403,7 @@
                                             </div>
 
                                             <!-- UPI Payment Form -->
-                                            <div id="upiPaymentDiv" style="display: none;">
+                                            <div id="upiPaymentDiv" class="section-hidden">
                                                 <div class="mb-3">
                                                     <label for="upiId" class="form-label">UPI ID</label>
                                                     <input type="text" class="form-control" id="upiId" placeholder="yourname@upi">
@@ -414,7 +411,7 @@
                                             </div>
 
                                             <!-- Net Banking Form -->
-                                            <div id="netbankingPaymentDiv" style="display: none;">
+                                            <div id="netbankingPaymentDiv" class="section-hidden">
                                                 <div class="mb-3">
                                                     <label for="bankName" class="form-label">Select Bank</label>
                                                     <select class="form-control" id="bankName">
@@ -507,7 +504,7 @@
                             <h5><i class="fas fa-crown"></i> Membership Status</h5>
                         </div>
                         <div class="card-body">
-                            <div id="membershipStatusPending" style="display: none;">
+                            <div id="membershipStatusPending" class="section-hidden">
                                 <div class="alert alert-warning">
                                     <i class="fas fa-exclamation-circle"></i> <strong>Membership Pending</strong>
                                     <p class="mt-2">You haven't purchased a membership yet.</p>
@@ -517,7 +514,7 @@
                                 </button>
                             </div>
                             
-                            <div id="membershipStatusActive" style="display: none;">
+                            <div id="membershipStatusActive" class="section-hidden">
                                 <div class="alert alert-success text-center">
                                     <i class="fas fa-check-circle"></i> <strong>Active Membership</strong>
                                 </div>
@@ -596,8 +593,8 @@
                                     <p>Intermediate Level • 45 minutes</p>
                                     <small>6 exercises planned</small>
                                 </div>
-                                <button class="btn btn-sm btn-success">
-                                    <i class="fas fa-play"></i>
+                                <button class="btn btn-sm btn-success btn-icon-play" aria-label="Start Chest &amp; Triceps workout" title="Start Workout">
+                                    <i class="fas fa-play" aria-hidden="true"></i>
                                 </button>
                             </div>
 
@@ -735,7 +732,7 @@
     </div>
 
     <!-- Alert Container -->
-    <div id="alertContainer" style="position: fixed; top: 80px; right: 20px; z-index: 1000; width: 300px;"></div>
+    <div id="alertContainer" class="alert-fixed-container"></div>
 
     <!-- Edit Profile Modal -->
     <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileLabel" aria-hidden="true">
@@ -837,7 +834,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label"><i class="fas fa-mars"></i> Gender</label>
-                                <select class="form-control" id="fitnessGender" required>
+                                <select class="form-control" id="fitnessGender" aria-label="Select Gender" title="Gender" required>
                                     <option value="">Select Gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
@@ -854,7 +851,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label"><i class="fas fa-bullseye"></i> Fitness Goal</label>
-                                <select class="form-control" id="fitnessGoal" required>
+                                <select class="form-control" id="fitnessGoal" aria-label="Select Fitness Goal" title="Fitness Goal" required>
                                     <option value="">Select Your Goal</option>
                                     <option value="Weight Loss">Weight Loss</option>
                                     <option value="Muscle Gain">Muscle Gain</option>
@@ -865,7 +862,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label"><i class="fas fa-book"></i> Experience Level</label>
-                                <select class="form-control" id="fitnessExperience" required>
+                                <select class="form-control" id="fitnessExperience" aria-label="Select Experience Level" title="Experience Level" required>
                                     <option value="">Select Your Level</option>
                                     <option value="Beginner">Beginner</option>
                                     <option value="Intermediate">Intermediate</option>
@@ -873,7 +870,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div style="background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                        <div class="hint-box">
                             <small><i class="fas fa-info-circle text-info"></i> This information helps us create personalized workout and diet plans for you.</small>
                         </div>
                     </form>
@@ -1011,70 +1008,73 @@
                 },
                 'billing': {
                     title: 'Billing & Payments 💳',
-                    content: `
-                        <div class="dashboard-card">
-                            <div class="card-header">
-                                <h5><i class="fas fa-credit-card"></i> Billing Information</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <h6 class="text-success mb-2">Current Plan</h6>
-                                        <p><strong>Professional Plan</strong></p>
-                                        <p class="text-muted">₹1,999/month</p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6 class="text-success mb-2">Next Renewal</h6>
-                                        <p><strong>March 20, 2027</strong></p>
-                                        <button class="btn btn-sm btn-success">Auto-Renewal: ON</button>
-                                    </div>
+                    get content() {
+                        const user = JSON.parse(localStorage.getItem('fitnesshub_user') || '{}');
+                        const plan = user.plan || { name: 'Starter Plan', price: 999 };
+                        const enrollDate = user.paymentDate ? new Date(user.paymentDate) : new Date();
+                        const renewalDate = new Date(enrollDate);
+                        renewalDate.setMonth(renewalDate.getMonth() + 1);
+                        
+                        return `
+                            <div class="dashboard-card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-credit-card"></i> Billing Information</h5>
                                 </div>
-                                <hr>
-                                <h6 class="text-success mb-2">Recent Payments</h6>
-                                <table class="table table-sm">
-                                    <tr>
-                                        <td>Professional Plan</td>
-                                        <td class="text-right">₹1,999</td>
-                                        <td><small>Mar 20, 2026</small></td>
-                                        <td><span class="badge bg-success">Paid</span></td>
-                                    </tr>
-                                </table>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <h6 class="text-success mb-2">Current Plan</h6>
+                                            <p><strong>${plan.name}</strong></p>
+                                            <p class="text-muted">₹${plan.price}/month</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6 class="text-success mb-2">Next Renewal</h6>
+                                            <p><strong>${renewalDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</strong></p>
+                                            <button class="btn btn-sm btn-success">Auto-Renewal: ON</button>
+                                        </div>
+                                    </div>
+                                    <hr>
+                                    <h6 class="text-success mb-2">Recent Payments</h6>
+                                    <table class="table table-sm">
+                                        <tr>
+                                            <td>${plan.name}</td>
+                                            <td class="text-right">₹${plan.price}</td>
+                                            <td><small>${enrollDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</small></td>
+                                            <td><span class="badge bg-success">Paid</span></td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
-                    `
+                        `;
+                    }
                 },
                 'settings': {
                     title: 'Settings ⚙️',
                     content: `
                         <div class="dashboard-card">
                             <div class="card-header">
-                                <h5><i class="fas fa-cog"></i> Account Settings</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <h6>Profile Settings</h6>
-                                    <button class="btn btn-sm btn-outline-success mb-2"><i class="fas fa-edit"></i> Edit Profile</button>
-                                    <button class="btn btn-sm btn-outline-success mb-2"><i class="fas fa-key"></i> Change Password</button>
+                                    <h5><i class="fas fa-cog"></i> Account Settings</h5>
                                 </div>
-                                <hr>
-                                <div class="mb-3">
-                                    <h6>Preferences</h6>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="notifyEmail" checked>
-                                        <label class="form-check-label" for="notifyEmail">
-                                            Email Notifications
-                                        </label>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <h6>Profile Settings</h6>
+                                        <button class="btn btn-sm btn-outline-success mb-2" onclick="openEditProfileModal()"><i class="fas fa-edit"></i> Edit Profile</button>
+                                        <button class="btn btn-sm btn-outline-success mb-2"><i class="fas fa-key"></i> Change Password</button>
                                     </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="notifyPush" checked>
-                                        <label class="form-check-label" for="notifyPush">
-                                            Push Notifications
-                                        </label>
+                                    <hr>
+                                    <div class="mb-3">
+                                        <h6>Preferences</h6>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="notifyEmail" checked>
+                                            <label class="form-check-label" for="notifyEmail">
+                                                Email Notifications
+                                            </label>
+                                        </div>
                                     </div>
-                                </div>
-                                <hr>
-                                <div>
-                                    <button class="btn btn-danger w-100"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                                    <hr>
+                                    <div>
+                                        <button class="btn btn-danger w-100" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
