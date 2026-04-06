@@ -73,24 +73,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => {
             const user = window.dashboardState.userProfile;
             
-            // If payment not complete, redirect to membership page
-            // We prioritize membership_status which is synced from server in loadUserData()
-            const isPaid = user && (
-                user.membership_status === 'active' || 
-                user.isPaid === true || 
-                user.paymentStatus === 'completed' || 
-                user.paymentStatus === 'paid' ||
-                user.status === 'active'
-            );
-            
-            if (!isPaid) {
-                console.log('⚠️ Payment not complete (Status: ' + (user?.membership_status || 'none') + ') - redirecting to payment page');
-                window.location.href = 'payment.html';
-                return;
-            }
-
-            // Payment complete - show dashboard
-            console.log('✅ Payment complete - showing dashboard');
             checkProfileCompletion();
             loadPaymentHistory();
         }, 200);

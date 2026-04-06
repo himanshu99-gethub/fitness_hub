@@ -1,5 +1,9 @@
-const API_BASE_URL = window.location.origin + '/api'; 
+let API_BASE_URL = window.location.origin + '/api'; 
 
+// Fallback for local development via file:// protocol
+if (window.location.protocol === 'file:') {
+    API_BASE_URL = 'http://localhost:5000/api';
+}
 async function apiRegisterUser(userData) {
     try {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {

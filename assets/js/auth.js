@@ -303,7 +303,7 @@ function selectPlan(planId) {
                 <div class="badge bg-success">Selected</div>
             </div>
         `;
-        infoBox.style.display = 'block';
+        infoBox.classList.remove('d-none');
     }
 
     // Also update Step 4 Summary (for immediate feedback)
@@ -413,7 +413,7 @@ async function completeRegistration() {
         userFormData = {};
 
         setTimeout(() => {
-            window.location.replace('payment.html');
+            window.location.replace('dashboard.html');
         }, 3000);
 
     } catch (error) {
@@ -487,11 +487,7 @@ async function handleLogin() {
                  }
              }
 
-            if (isPaid) {
-                window.location.href = 'dashboard.html';
-            } else {
-                window.location.href = 'payment.html';
-            }
+            window.location.href = 'dashboard.html';
         }, 1000);
 
     } catch (error) {
@@ -554,10 +550,8 @@ function verifyOTP() {
             const user = findUser(email);
             if (user) {
                 localStorage.setItem(KEY_USER, JSON.stringify(user));
-                window.location.href = user.isPaid ? 'dashboard.html' : 'payment.html';
-            } else {
-                window.location.href = 'dashboard.html';
             }
+            window.location.href = 'dashboard.html';
         }, 1500);
     } else {
         showAlert(result.message, 'error');
@@ -754,7 +748,10 @@ function clearRegistrationForm() {
     document.querySelectorAll('.plan-option').forEach(el => el.classList.remove('selected'));
 
     const planInfo = document.getElementById('selectedPlanInfo');
-    if (planInfo) planInfo.innerHTML = '';
+    if (planInfo) {
+        planInfo.innerHTML = '';
+        planInfo.classList.add('d-none');
+    }
 
     document.querySelectorAll('.form-step').forEach((el, idx) => {
         el.classList.toggle('active', idx === 0);

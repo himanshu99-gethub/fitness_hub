@@ -141,17 +141,17 @@ async function createMembership(membershipData) {
         duration_unit: durationUnit,
         start_date: startDate || new Date().toISOString(),
         end_date: endDate || new Date(Date.now() + duration * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'pending', // Starts as pending until payment
+        status: 'active', // Active immediately
         features,
         auto_renew: autoRenew || false
       }])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return { success: false, error: error.message };
 
-    // 4. Update user status to pending
-    await supabase.from('users').update({ membership_status: 'pending' }).eq('id', userId);
+    // Update the user's membership_status to active to ensure sync
+    await supabase.from('users').update({ membership_status: 'active' }).eq('id', userId);
     
     return { success: true, membership: data };
   } catch (error) {
