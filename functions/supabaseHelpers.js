@@ -4,15 +4,21 @@ require('dotenv').config();
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Supabase URL or Key missing in .env');
+let supabase;
+if (supabaseUrl && supabaseKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseKey);
+  } catch (err) {
+    console.error('❌ Failed to initialize Supabase client:', err.message);
+  }
+} else {
+  console.error('❌ Supabase URL or Key missing. Database operations will fail.');
 }
-
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ==================== USER OPERATIONS ====================
 
 async function createUser(userData) {
+  if (!supabase) return { success: false, error: 'Database configuration missing (SUPABASE_URL/KEY)' };
   try {
     // Supabase table uses snake_case, JS uses camelCase usually
     // mapping fields: firstName -> first_name, lastName -> last_name, etc.
@@ -46,6 +52,7 @@ async function createUser(userData) {
 }
 
 async function findUserByEmail(email) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
     const { data, error } = await supabase
       .from('users')
@@ -61,6 +68,7 @@ async function findUserByEmail(email) {
 }
 
 async function updateUserProfile(userId, updateData) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
     const { data, error } = await supabase
       .from('users')
@@ -79,6 +87,7 @@ async function updateUserProfile(userId, updateData) {
 // ==================== MEMBERSHIP OPERATIONS ====================
 
 async function createMembership(membershipData) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
     const { userId, planName, planType, price, duration, durationUnit, startDate, endDate, features, autoRenew } = membershipData;
     
@@ -112,6 +121,7 @@ async function createMembership(membershipData) {
 }
 
 async function getUserActiveMembership(userId) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
     const { data, error } = await supabase
       .from('memberships')
@@ -133,6 +143,7 @@ async function getUserActiveMembership(userId) {
 // ==================== PAYMENT OPERATIONS ====================
 
 async function createPayment(paymentData) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
     const { userId, membershipId, amount, currency, paymentMethod, transactionId, status, description } = paymentData;
     
@@ -159,6 +170,7 @@ async function createPayment(paymentData) {
 }
 
 async function getUserPayments(userId) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
     const { data, error } = await supabase
       .from('payments')
@@ -176,6 +188,7 @@ async function getUserPayments(userId) {
 // ==================== OTP OPERATIONS ====================
 
 async function generateOTP(email) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
@@ -200,6 +213,7 @@ async function generateOTP(email) {
 }
 
 async function verifyOTP(email, otp) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
     const { data: record, error } = await supabase
       .from('otps')
