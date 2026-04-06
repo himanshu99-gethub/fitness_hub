@@ -129,11 +129,14 @@ app.post('/api/membership/create', async (req, res) => {
 
 app.post('/api/membership/activate', async (req, res) => {
     try {
-        const { userId, membershipId } = req.body;
-        if (!userId || !membershipId) {
-            return res.status(400).json({ success: false, error: 'Missing userId or membershipId' });
+        const { userId, email, membershipId } = req.body;
+        const identifier = userId || email;
+        
+        if (!identifier || !membershipId) {
+            return res.status(400).json({ success: false, error: 'Missing identifier (userId/email) or membershipId' });
         }
-        const result = await activateMembership(userId, membershipId);
+        
+        const result = await activateMembership(identifier, membershipId);
         if (result.success) {
             res.json(result);
         } else {
@@ -175,9 +178,23 @@ app.get('/api/membership/latest/:email', async (req, res) => {
 });
 
 // Payment Routes
-app.post('/api/payment/create', async (req, res) => {
+app.post('/api/payments/create', async (req, res) => {
     try {
-        const result = await createPayment(req.body);
+        const { userId, email, amount, method, transactionId, membershipId } = req.body;
+        const identifier = userId || email;
+        
+        if (!identifier || !amount || !membershipId) {
+            return res.status(400).json({ success: false, error: 'Missing required payment fields' });
+        }
+        
+        const result = await createPayment({
+            userId: identifier,
+            amount,
+            method,
+            transactionId,
+            membershipId
+        });
+        
         if (result.success) {
             res.status(201).json(result);
         } else {
