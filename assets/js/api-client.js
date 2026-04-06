@@ -159,6 +159,23 @@ async function apiActivateMembership(userId, membershipId) {
     }
 }
 
+async function apiGetLatestMembership(email) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/membership/latest/${email}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to fetch membership');
+        }
+        return { success: true, data: await response.json() };
+    } catch (error) {
+        console.error('❌ Get latest membership error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 async function apiGetActiveMembership(email) {
     try {
         const response = await fetch(`${API_BASE_URL}/membership/${email}`, {
@@ -306,7 +323,7 @@ async function apiLogoutUser(email) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         apiRegisterUser, apiLoginUser, apiGetProfile, apiGenerateOTP, apiVerifyOTP,
-        apiCreateMembership, apiActivateMembership, apiGetActiveMembership, apiGetMembershipHistory,
+        apiCreateMembership, apiActivateMembership, apiGetLatestMembership, apiGetActiveMembership, apiGetMembershipHistory,
         apiCreatePayment, apiGetPaymentHistory, apiGetTotalRevenue,
         apiHealthCheck, apiValidateSession, apiLogoutUser
     };

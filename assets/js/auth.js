@@ -347,6 +347,9 @@ async function completeRegistration() {
             otpVerified: true
         }));
 
+        // Re-save plan specifically for payment page handover
+        localStorage.setItem('fitnesshub_selected_plan', JSON.stringify(selectedPlan));
+
         // 5. Show success step
         const successEmail = document.getElementById('successEmail');
         const successPlan  = document.getElementById('successPlan');

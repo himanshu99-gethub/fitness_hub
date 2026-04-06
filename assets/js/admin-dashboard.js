@@ -232,10 +232,10 @@ function displayUsers() {
                     </small>
                     <br>
                     <small>
-                        <i class="fas fa-crown"></i> Plan: <strong>${userData?.plan?.type || 'N/A'}</strong> | 
-                        <i class="fas fa-calendar"></i> Joined: ${formatDate(user.registrationDate)} |
-                        <span class="badge ${userData?.membership_status === 'active' || userData?.isPaid ? 'bg-success' : 'bg-warning'}">
-                            ${userData?.membership_status === 'active' || userData?.isPaid ? 'PAID' : 'PENDING'}
+                        <i class="fas fa-crown"></i> Plan: <strong>${userData?.plan?.type || userData?.plan || 'N/A'}</strong> | 
+                        <i class="fas fa-calendar"></i> Joined: ${formatDate(user.registrationDate || user.created_at)} |
+                        <span class="badge ${userData?.membership_status === 'active' ? 'bg-success' : 'bg-warning'}">
+                            ${userData?.membership_status === 'active' ? 'PAID' : 'PENDING'}
                         </span>
                     </small>
                     <br>
@@ -315,7 +315,8 @@ function updateStatistics() {
         // Only count revenue from members who have actually paid
         if (u.membership_status === 'active') {
             const planPrices = { starter: 999, professional: 1999, elite: 2999 };
-            const planType = (u.plan && typeof u.plan === 'object') ? u.plan.type : (u.planType || u.plan);
+            const planDetails = u.plan || {};
+            const planType = typeof planDetails === 'object' ? planDetails.type : planDetails;
             totalRevenue += planPrices[planType] || 0;
         }
     });
@@ -332,8 +333,8 @@ function loadAndDisplayActiveMembers() {
 
     if (!container) return;
 
-    // Get all users
-    const users = getMergedUsers();
+    // Priority: use the server-fetched users
+    const users = (allUsers && allUsers.length > 0) ? allUsers : getMergedUsers();
 
     // Filter only active members (membership_status 'active')
     const activeMembers = users.filter(u => u.membership_status === 'active');

@@ -170,6 +170,24 @@ async function activateMembership(userId, membershipId) {
   }
 }
 
+async function getUserLatestMembership(userId) {
+  if (!supabase) return { success: false, error: 'Database configuration missing' };
+  try {
+    const { data, error } = await supabase
+      .from('memberships')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, membership: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 async function getUserActiveMembership(userId) {
   if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
@@ -340,6 +358,7 @@ module.exports = {
   createMembership,
   activateMembership,
   getUserActiveMembership,
+  getUserLatestMembership,
   createPayment,
   getUserPayments,
   generateOTP,

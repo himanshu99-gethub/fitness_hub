@@ -9,7 +9,7 @@ dotenv.config();
 // Supabase initialization
 const { 
   createUser, findUserByEmail, generateOTP, verifyOTP, 
-  createMembership, activateMembership, getUserActiveMembership, createPayment, getUserPayments,
+  createMembership, activateMembership, getUserActiveMembership, getUserLatestMembership, createPayment, getUserPayments,
   getAllUsers, deleteUser
 } = require('./functions/supabaseHelpers');
 
@@ -150,6 +150,21 @@ app.get('/api/membership/:email', async (req, res) => {
         const userResult = await findUserByEmail(email);
         if (userResult.success && userResult.user) {
             const result = await getUserActiveMembership(userResult.user.id);
+            res.json(result);
+        } else {
+            res.status(404).json({ success: false, error: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/membership/latest/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        const userResult = await findUserByEmail(email);
+        if (userResult.success && userResult.user) {
+            const result = await getUserLatestMembership(userResult.user.id);
             res.json(result);
         } else {
             res.status(404).json({ success: false, error: 'User not found' });

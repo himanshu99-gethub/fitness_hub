@@ -71,19 +71,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Check profile completion status
         setTimeout(() => {
-            const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+            const user = window.dashboardState.userProfile;
             
             // If payment not complete, redirect to membership page
             // We prioritize membership_status which is synced from server in loadUserData()
-            const isPaid = userData && (
-                userData.membership_status === 'active' || 
-                userData.isPaid === true || 
-                userData.paymentStatus === 'completed' || 
-                userData.paymentStatus === 'paid'
+            const isPaid = user && (
+                user.membership_status === 'active' || 
+                user.isPaid === true || 
+                user.paymentStatus === 'completed' || 
+                user.paymentStatus === 'paid'
             );
             
             if (!isPaid) {
-                console.log('⚠️ Payment not complete (Status: ' + (userData?.membership_status || 'none') + ') - redirecting to membership page');
+                console.log('⚠️ Payment not complete (Status: ' + (user?.membership_status || 'none') + ') - redirecting to membership page');
                 window.location.href = 'membership.html';
                 return;
             }

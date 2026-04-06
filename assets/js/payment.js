@@ -24,14 +24,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (response.success && response.user) {
             currentUser = response.user;
             
-            // 3. Get Selected Plan from temp storage
-            const savedPlan = localStorage.getItem('fitnesshub_selected_plan');
+            // 3. Get Selected Plan from temp storage or Server
+            let savedPlan = localStorage.getItem('fitnesshub_selected_plan');
             if (!savedPlan) {
-                console.warn('No plan selected');
-                window.location.href = 'membership.html';
-                return;
+                console.log('🔄 No plan in local storage, checking server for pending membership...');
+                const memResponse = await apiGetLatestMembership(currentUser.email);
+                if (memResponse.success && memResponse.data && memResponse.data.membership) {
+                    const mem = memResponse.data.membership;
+                    currentPlan = {
+                        id: mem.id,
+                        name: mem.plan_name,
+                        price: mem.price,
+                        type: mem.plan_type
+                    };
+                } else {
+                    console.warn('No plan selected and no pending membership on server');
+                    window.location.href = 'membership.html';
+                    return;
+                }
+            } else {
+                currentPlan = JSON.parse(savedPlan);
             }
-            currentPlan = JSON.parse(savedPlan);
             
             // 4. Populate UI
             loadPaymentSummary(currentUser, currentPlan);
@@ -179,21 +192,31 @@ async function processPayment(e) {
         // Simulation delay
         await new Promise(resolve => setTimeout(resolve, 2500));
 
-        // 1. Register transaction on Server
-        const paymentData = {
-            email: currentUser.email,
-            amount: currentPlan.price,
-            plan_type: currentPlan.type,
-            transaction_id: `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+        // Gather correct activation payload
+        const activationData = {
+            userId: currentUser.id,
+            membershipId: currentPlan.id || currentUser.currentMembershipId
         };
 
-        const response = await apiProcessPayment(paymentData);
+        if (!activationData.membershipId) {
+            // Re-fetch latest membership to get the ID if it's missing
+            const memResponse = await apiGetLatestMembership(currentUser.email);
+            if (memResponse.success && memResponse.data && memResponse.data.membership) {
+                activationData.membershipId = memResponse.data.membership.id;
+            }
+        }
+
+        if (!activationData.userId || !activationData.membershipId) {
+            throw new Error('Unable to identify user or membership for activation.');
+        }
+
+        const response = await apiProcessPayment(activationData);
 
         if (response.success) {
             showSuccessState();
             localStorage.removeItem('fitnesshub_selected_plan');
         } else {
-            throw new Error(response.message || 'Payment Declined by Server');
+            throw new Error(response.message || 'Payment Activation Failed');
         }
     } catch (err) {
         console.error('Transaction Failed:', err);
