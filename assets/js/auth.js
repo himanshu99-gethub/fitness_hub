@@ -339,13 +339,17 @@ async function completeRegistration() {
         // 3. Clear ANY legacy status flags and local storage
         clearAllStorage();
 
-        // 4. Create Local Session (Email only)
+        // 4. Create Local Session (Email and Full Profile)
         localStorage.setItem(KEY_SESSION, JSON.stringify({
             email:      userRecord.email,
             loginTime:  new Date().toISOString(),
             rememberMe: true,
             otpVerified: true
         }));
+
+        // Set the current user object for entire platform consistency
+        localStorage.setItem('currentUser', JSON.stringify(userRecord));
+        localStorage.setItem('fitnesshub_user', JSON.stringify(userRecord)); // For dashboard compatibility
 
         // Re-save plan specifically for payment page handover
         localStorage.setItem('fitnesshub_selected_plan', JSON.stringify(selectedPlan));
@@ -407,13 +411,17 @@ async function handleLogin() {
 
         const user = result.data.user;
 
-        // Save session (Email only)
+        // Save session (Full Profile)
         localStorage.setItem(KEY_SESSION, JSON.stringify({
             email:      user.email,
             loginTime:  new Date().toISOString(),
             rememberMe: rememberMe || false,
             otpVerified: true
         }));
+
+        // Set the current user object for entire platform consistency
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem('fitnesshub_user', JSON.stringify(user)); // For dashboard compatibility
 
         showAlert('Login successful! Redirecting...', 'success');
 

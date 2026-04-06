@@ -170,13 +170,30 @@ async function activateMembership(userId, membershipId) {
   }
 }
 
-async function getUserLatestMembership(userId) {
+async function getUserLatestMembership(userIdOrEmail) {
   if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
+    let finalUserId = userIdOrEmail;
+
+    // Check if input is likely an email (very simple check for @)
+    if (userIdOrEmail && userIdOrEmail.includes('@')) {
+        const { data: userRecord, error: uError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', userIdOrEmail.toLowerCase())
+            .maybeSingle();
+        
+        if (userRecord) {
+            finalUserId = userRecord.id;
+        } else {
+            return { success: false, error: 'User not found by email' };
+        }
+    }
+
     const { data, error } = await supabase
       .from('memberships')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', finalUserId)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();

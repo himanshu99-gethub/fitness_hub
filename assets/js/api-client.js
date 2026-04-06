@@ -141,12 +141,19 @@ async function apiCreateMembership(email, plan, price, duration = 30) {
     }
 }
 
-async function apiActivateMembership(userId, membershipId) {
+async function apiActivateMembership(dataOrId, maybeMemId) {
     try {
+        let payload;
+        if (typeof dataOrId === 'object') {
+            payload = dataOrId;
+        } else {
+            payload = { userId: dataOrId, membershipId: maybeMemId };
+        }
+
         const response = await fetch(`${API_BASE_URL}/membership/activate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, membershipId })
+            body: JSON.stringify(payload)
         });
         if (!response.ok) {
             const error = await response.json();

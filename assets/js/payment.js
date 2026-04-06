@@ -178,45 +178,48 @@ async function processPayment(e) {
     if (!validatePaymentForm()) return;
     
     const btn = document.getElementById('processPaymentBtn');
+    const form = document.getElementById('paymentForm');
+    const loader = document.getElementById('loadingPayment');
+
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> PROCESSING...';
     }
-
-    const form = document.getElementById('paymentForm');
-    const loader = document.getElementById('loadingPayment');
     if (form) form.style.display = 'none';
     if (loader) loader.style.display = 'block';
 
     try {
         // Simulation delay
-        await new Promise(resolve => setTimeout(resolve, 2500));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Gather correct activation payload
+        // Use api-client activate instead of local fetch
         const activationData = {
             userId: currentUser.id,
-            membershipId: currentPlan.id || currentUser.currentMembershipId
+            membershipId: currentPlan.id
         };
 
         if (!activationData.membershipId) {
-            // Re-fetch latest membership to get the ID if it's missing
-            const memResponse = await apiGetLatestMembership(currentUser.email);
-            if (memResponse.success && memResponse.data && memResponse.data.membership) {
-                activationData.membershipId = memResponse.data.membership.id;
-            }
+             // Second attempt if ID was somehow missed (like when currentPlan is the static plan data)
+             const memFetch = await apiGetLatestMembership(currentUser.email);
+             if (memFetch.success && memFetch.data && memFetch.data.membership) {
+                 activationData.membershipId = memFetch.data.membership.id;
+             }
         }
 
         if (!activationData.userId || !activationData.membershipId) {
-            throw new Error('Unable to identify user or membership for activation.');
+            throw new Error('Unable to identify user or membership for activation. Try refreshing.');
         }
 
-        const response = await apiProcessPayment(activationData);
+        const response = await apiActivateMembership(activationData);
 
         if (response.success) {
+            // Also update local storage if needed
+            currentUser.membership_status = 'active';
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             showSuccessState();
             localStorage.removeItem('fitnesshub_selected_plan');
         } else {
-            throw new Error(response.message || 'Payment Activation Failed');
+            throw new Error(response.error || 'Payment Activation Failed');
         }
     } catch (err) {
         console.error('Transaction Failed:', err);
@@ -230,34 +233,19 @@ async function processPayment(e) {
     }
 }
 
-async function apiProcessPayment(data) {
-    try {
-        const res = await fetch('/api/membership/activate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        return await res.json();
-    } catch (e) {
-        return { success: false, message: 'Server Connection Error' };
-    }
-}
-
 function showSuccessState() {
     const loader = document.getElementById('loadingPayment');
     if (loader) {
         loader.innerHTML = `
             <div style="text-align: center; padding: 40px;">
-                <div style="font-size: 60px; color: #10b981; margin-bottom: 20px;">
+                <div class="mb-4" style="font-size: 60px; color: var(--accent-color);">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <h3 style="color: #fff; margin-bottom: 10px;">Payment Successful! 🎉</h3>
-                <p style="color: #cbd5e1; margin-bottom: 20px;">Your membership is now active.</p>
-                <div style="padding: 15px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2); margin-bottom: 25px;">
-                    <span style="display: block; color: #84cc16; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;">Transaction ID</span>
-                    <span style="color: #fff; font-family: monospace;">${Math.random().toString(36).substr(2, 12).toUpperCase()}</span>
-                </div>
-                <p style="color: #94a3b8; font-size: 0.9rem;">Redirecting to your dashboard in 3 seconds...</p>
+                <h2 class="mb-3">PAYMENT SUCCESSFUL!</h2>
+                <p class="mb-4">Welcome to Fitness Hub! Your membership is now ACTIVE.</p>
+                <a href="dashboard.html" class="btn btn-primary px-5 py-3">
+                    GO TO DASHBOARD <i class="fas fa-arrow-right ms-2"></i>
+                </a>
             </div>
         `;
     }
