@@ -214,7 +214,7 @@ async function apiGetMembershipHistory(email) {
 
 async function apiCreatePayment(email, membershipId, amount, method = 'card') {
     try {
-        const response = await fetch(`${API_BASE_URL}/payment/create`, {
+        const response = await fetch(`${API_BASE_URL}/payments/create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
