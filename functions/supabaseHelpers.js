@@ -160,27 +160,39 @@ async function createMembership(membershipData) {
   }
 }
 
-async function activateMembership(userId, membershipId) {
+async function activateMembership(userIdOrEmail, membershipId) {
   if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
+    let finalUserId = userIdOrEmail;
+
+    // Resolve email to UUID if needed
+    if (userIdOrEmail && userIdOrEmail.includes('@') && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userIdOrEmail)) {
+        console.log(`Resolving activation for email: ${userIdOrEmail}`);
+        const { data: user, error: uError } = await supabase.from('users').select('id').eq('email', userIdOrEmail.toLowerCase()).maybeSingle();
+        if (user) finalUserId = user.id;
+    }
+
+    if (!finalUserId) return { success: false, error: 'Cannot activate membership: Invalid User ID' };
+
     // 1. Update membership status to active
     const { error: mError } = await supabase
       .from('memberships')
       .update({ status: 'active' })
       .eq('id', membershipId);
 
-    if (mError) return { success: false, error: mError.message };
+    if (mError) throw mError;
 
     // 2. Update user membership_status to active
     const { error: uError } = await supabase
       .from('users')
       .update({ membership_status: 'active' })
-      .eq('id', userId);
+      .eq('id', finalUserId);
 
-    if (uError) return { success: false, error: uError.message };
+    if (uError) throw uError;
 
     return { success: true };
   } catch (error) {
+    console.error('❌ activateMembership error:', error);
     return { success: false, error: error.message };
   }
 }
@@ -245,26 +257,35 @@ async function getUserActiveMembership(userId) {
 async function createPayment(paymentData) {
   if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
-    const { userId, membershipId, amount, currency, paymentMethod, transactionId, status, description } = paymentData;
+    let { userId, email, amount, method, transactionId, membershipId, status } = paymentData;
     
+    // Resolve email to UUID if needed
+    const identifier = (email || userId || "").toString();
+    if (identifier.includes('@') && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier)) {
+        const { data: user, error: uError } = await supabase.from('users').select('id').eq('email', identifier.toLowerCase()).maybeSingle();
+        if (user) userId = user.id;
+    }
+
+    if (!userId) return { success: false, error: 'Cannot create payment: Invalid User ID' };
+
     const { data, error } = await supabase
       .from('payments')
       .insert([{
         user_id: userId,
         membership_id: membershipId,
         amount,
-        currency,
-        payment_method: paymentMethod,
+        payment_method: method || 'online',
         transaction_id: transactionId,
-        status,
-        description
+        status: status || 'completed', // Simulation is usually completed
+        payment_date: new Date().toISOString()
       }])
       .select()
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) throw error;
     return { success: true, payment: data };
   } catch (error) {
+    console.error('❌ createPayment error:', error);
     return { success: false, error: error.message };
   }
 }
