@@ -9,7 +9,7 @@ dotenv.config();
 // Supabase initialization
 const { 
   createUser, findUserByEmail, generateOTP, verifyOTP, 
-  createMembership, getUserActiveMembership, createPayment, getUserPayments,
+  createMembership, activateMembership, getUserActiveMembership, createPayment, getUserPayments,
   getAllUsers, deleteUser
 } = require('./functions/supabaseHelpers');
 

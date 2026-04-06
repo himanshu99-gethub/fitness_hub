@@ -12,96 +12,28 @@ let otpTimerInterval = null;
 let resetOtpTimerInterval = null;
 
 // ─── STORAGE KEYS ───────────────────────────────────────────
-const KEY_USER       = 'fitnesshub_user';
 const KEY_SESSION    = 'fitnesshub_session';
-const KEY_DB         = 'fitnesshub_database';  // multi-user store
 
 // ============================================
-// MULTI-USER DATABASE HELPERS
+// SESSION HELPERS
 // ============================================
 
-function getDatabase() {
+function getSession() {
     try {
-        const raw = localStorage.getItem(KEY_DB);
-        return raw ? JSON.parse(raw) : {};
-    } catch (e) { return {}; }
+        const raw = localStorage.getItem(KEY_SESSION);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
 }
 
-function saveDatabase(db) {
-    localStorage.setItem(KEY_DB, JSON.stringify(db));
-}
-
-function findUser(email) {
-    if (!email) return null;
-    const emailLC = email.toLowerCase();
-
-    // 1. Check multi-user database (Primary)
-    const db = getDatabase();
-    if (db[emailLC]) {
-        const user = db[emailLC];
-        if (user.isDeleted || user.isActive === false) return null;
-        return user;
-    }
-
-    // 2. Check legacy array database
-    try {
-        const registeredUsersStr = localStorage.getItem('fitnesshub_registered_users');
-        if (registeredUsersStr) {
-            const users = JSON.parse(registeredUsersStr);
-            const user = users.find(u => u.email && u.email.toLowerCase() === emailLC);
-            if (user) {
-                if (user.isDeleted || user.isActive === false) return null;
-                return user;
-            }
+function clearAllStorage() {
+    // Clear only fitnesshub related keys to be safe
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+        if (key.startsWith('fitnesshub_')) {
+            localStorage.removeItem(key);
         }
-    } catch (e) { /* ignore */ }
-
-    // 3. Fallback: check legacy single-user cache
-    try {
-        const raw = localStorage.getItem(KEY_USER);
-        if (raw) {
-            const u = JSON.parse(raw);
-            if (u.email && u.email.toLowerCase() === emailLC) {
-                if (u.isDeleted || u.isActive === false) return null;
-                return u;
-            }
-        }
-    } catch (e) { /* ignore */ }
-
-    return null;
-}
-
-function saveUser(userData) {
-    if (!userData.email) return false;
-    const emailLC = userData.email.toLowerCase();
-    userData.email = emailLC;
-
-    // 1. Save into multi-user database (Object format)
-    const db = getDatabase();
-    db[emailLC] = userData;
-    saveDatabase(db);
-
-    // 2. Sync with legacy array database (Array format)
-    try {
-        const registeredUsersStr = localStorage.getItem('fitnesshub_registered_users');
-        let users = registeredUsersStr ? JSON.parse(registeredUsersStr) : [];
-        const index = users.findIndex(u => u.email && u.email.toLowerCase() === emailLC);
-        
-        if (index >= 0) {
-            users[index] = { ...users[index], ...userData };
-        } else {
-            users.push(userData);
-        }
-        localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
-    } catch (e) { console.error('Error syncing legacy users:', e); }
-
-    // 3. Also update single-user session cache for current user
-    localStorage.setItem(KEY_USER, JSON.stringify(userData));
-    return true;
-}
-
-function isUserRegistered(email) {
-    return !!findUser(email);
+    });
+    sessionStorage.clear();
 }
 
 // ============================================
@@ -404,23 +336,16 @@ async function completeRegistration() {
             userRecord.currentMembershipId = memResult.data.membership.id;
         }
 
-        // 3. Clear ANY legacy status flags from previous users on this browser
-        localStorage.removeItem('fitnesshub_payment_history');
-        localStorage.removeItem('fitnesshub_payment_id');
-        localStorage.removeItem('fitnesshub_is_paid');
+        // 3. Clear ANY legacy status flags and local storage
+        clearAllStorage();
 
-        // 4. Create Local Session
+        // 4. Create Local Session (Email only)
         localStorage.setItem(KEY_SESSION, JSON.stringify({
             email:      userRecord.email,
             loginTime:  new Date().toISOString(),
             rememberMe: true,
             otpVerified: true
         }));
-
-        // Ensure userRecord reflects the server's initial state properly
-        userRecord.isPaid = false; 
-        userRecord.paymentStatus = 'pending';
-        localStorage.setItem(KEY_USER, JSON.stringify(userRecord));
 
         // 5. Show success step
         const successEmail = document.getElementById('successEmail');
@@ -479,16 +404,13 @@ async function handleLogin() {
 
         const user = result.data.user;
 
-        // Save session
+        // Save session (Email only)
         localStorage.setItem(KEY_SESSION, JSON.stringify({
             email:      user.email,
             loginTime:  new Date().toISOString(),
             rememberMe: rememberMe || false,
             otpVerified: true
         }));
-
-        // Always sync the user profile to KEY_USER for the current session
-        localStorage.setItem(KEY_USER, JSON.stringify(user));
 
         showAlert('Login successful! Redirecting...', 'success');
 

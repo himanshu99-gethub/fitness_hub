@@ -54,44 +54,33 @@ let currentUser = null;
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('💎 Premium Membership Hub Initializing...');
     
-    // 1. Check for valid session
+    // 1. Check Session
     const session = localStorage.getItem('fitnesshub_session');
     if (!session) {
-        console.warn('Unauthorized access attempt');
         window.location.href = 'login.html';
         return;
     }
 
     try {
         showLoader(true);
-        // 2. Fetch/Validate profile from server
+        // 2. Fetch Fresh Profile
         const response = await apiGetProfile();
         
         if (response.success && response.user) {
             currentUser = response.user;
-            // Persistence for payment page
-            localStorage.setItem('fitnesshub_user', JSON.stringify(currentUser));
             
-            // 3. Populate Identity UI
+            // 3. Populate UI
             updateIdentityUI(currentUser);
             
-            // 4. Check for active membership to prevent duplicate purchases
+            // 4. Render Grid
             await fetchAndRenderPlans();
         } else {
             throw new Error(response.message || 'Verification Failed');
         }
     } catch (error) {
         console.error('Session Error:', error);
-        // If server is unreachable but we have local user, still show something
-        const localUser = JSON.parse(localStorage.getItem('fitnesshub_user'));
-        if (localUser) {
-            currentUser = localUser;
-            updateIdentityUI(currentUser);
-            renderPlanGrid(null);
-        } else {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        }
+        localStorage.clear();
+        window.location.href = 'login.html';
     } finally {
         showLoader(false);
     }
@@ -205,9 +194,7 @@ function proceedToPayment() {
     if (!selectedPlan) return;
 
     // Cache selection for payment processor
-    const user = JSON.parse(localStorage.getItem('fitnesshub_user')) || {};
-    user.selectedPlan = { ...selectedPlan };
-    localStorage.setItem('fitnesshub_user', JSON.stringify(user));
+    localStorage.setItem('fitnesshub_selected_plan', JSON.stringify(selectedPlan));
 
     showLoader(true);
     

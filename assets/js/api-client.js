@@ -42,14 +42,28 @@ async function apiLoginUser(email, password) {
     }
 }
 
-async function apiGetProfile() {
+async function apiGetProfile(emailParam = null) {
     try {
-        const user = JSON.parse(localStorage.getItem('fitnesshub_user'));
-        if (!user || (!user.email && !user.user_email)) {
-            return { success: false, message: 'User data missing' };
+        let email = emailParam;
+        
+        if (!email) {
+            // Try to get from session if not provided
+            const session = localStorage.getItem('fitnesshub_session');
+            if (session) {
+                // Handle both plain email and JSON string
+                try {
+                    const parsed = JSON.parse(session);
+                    email = parsed.email || session;
+                } catch (e) {
+                    email = session;
+                }
+            }
+        }
+
+        if (!email || email === 'undefined') {
+            return { success: false, message: 'User session missing' };
         }
         
-        const email = user.email || user.user_email;
         const response = await fetch(`${API_BASE_URL}/auth/profile/${encodeURIComponent(email)}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }

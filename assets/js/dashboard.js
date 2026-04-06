@@ -131,44 +131,39 @@ async function loadUserData() {
         const userEmail = session.email;
         
         // SYNC WITH SERVER DATABASE (Supabase)
-        console.log('🔄 Syncing with Supabase server...');
+        console.log('🔄 Fetching user data from Supabase...');
         try {
-            const serverUser = await apiGetUser(userEmail);
-            if (serverUser) {
-                // Determine payment status from server
-                const isPaid = serverUser.membership_status === 'active';
+            const profileResponse = await apiGetProfile(userEmail);
+            if (profileResponse.success && profileResponse.user) {
+                const serverUser = profileResponse.user;
                 
-                // Update local record with server truth
-                const localUser = JSON.parse(localStorage.getItem('fitnesshub_user') || '{}');
-                localUser.isPaid = isPaid;
-                localUser.membership_status = serverUser.membership_status;
-                localUser.currentMembershipId = serverUser.current_membership_id;
-                
-                localStorage.setItem('fitnesshub_user', JSON.stringify(localUser));
-                window.dashboardState.userProfile = localUser;
-                console.log('✅ Dashboard synced with Supabase server');
-            } else {
-                // Fallback to primary local database (fitnesshub_database)
-                const userDb = JSON.parse(localStorage.getItem('fitnesshub_database') || '{}');
-                const latestUserRecord = userDb[userEmail.toLowerCase()];
-                
-                if (latestUserRecord) {
-                    localStorage.setItem('fitnesshub_user', JSON.stringify(latestUserRecord));
-                    window.dashboardState.userProfile = latestUserRecord;
+                // Determine membership status from server data
+                const membershipResponse = await apiGetActiveMembership(userEmail);
+                if (membershipResponse.success && membershipResponse.data && membershipResponse.data.membership) {
+                    serverUser.membership_status = membershipResponse.data.membership.status;
+                    serverUser.currentMembershipId = membershipResponse.data.membership.id;
+                    serverUser.plan = membershipResponse.data.membership.plan;
                 }
+                
+                // Update session-only state
+                window.dashboardState.userProfile = serverUser;
+                console.log('✅ Dashboard loaded data from Supabase');
+            } else {
+                throw new Error(profileResponse.message || 'User not found on server');
             }
         } catch (error) {
-            console.error('❌ Error syncing with server:', error);
-            // Fallback to local storage if server is unreachable
-            const userData = localStorage.getItem('fitnesshub_user');
-            if (userData) {
-                window.dashboardState.userProfile = JSON.parse(userData);
-            }
+            console.error('❌ Error fetching from server:', error);
+            // If the server is unreachable or user not found, we cannot proceed with stale data
+            showAlert('Session expired or server unreachable. Please login again.', 'error');
+            setTimeout(() => {
+                localStorage.removeItem('fitnesshub_session');
+                window.location.href = 'login.html';
+            }, 3000);
+            return;
         }
 
         const user = window.dashboardState.userProfile;
-        // Check if the user is actually paid in the profile
-        const isPaid = user && (user.isPaid === true || user.membership_status === 'active');
+        const isPaid = user && user.membership_status === 'active';
         
         if (user) {
             // Display actual user name (from registration)
