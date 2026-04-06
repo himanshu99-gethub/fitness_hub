@@ -129,7 +129,7 @@ async function createMembership(membershipData) {
     duration = duration || 30;
     durationUnit = durationUnit || 'days';
     
-    // 3. Create membership record
+    // 3. Create membership record — starts as 'pending' until payment is confirmed
     const { data, error } = await supabase
       .from('memberships')
       .insert([{
@@ -141,7 +141,7 @@ async function createMembership(membershipData) {
         duration_unit: durationUnit,
         start_date: startDate || new Date().toISOString(),
         end_date: endDate || new Date(Date.now() + duration * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'active', // Active immediately
+        status: 'pending', // Will be activated after payment
         features,
         auto_renew: autoRenew || false
       }])
@@ -149,9 +149,9 @@ async function createMembership(membershipData) {
       .single();
 
     if (error) return { success: false, error: error.message };
-
-    // Update the user's membership_status to active to ensure sync
-    await supabase.from('users').update({ membership_status: 'active' }).eq('id', userId);
+    
+    // Keep user membership_status as 'pending' until payment is done
+    await supabase.from('users').update({ membership_status: 'pending' }).eq('id', userId);
     
     return { success: true, membership: data };
   } catch (error) {

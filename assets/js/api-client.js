@@ -250,6 +250,23 @@ async function apiGetPaymentHistory(email) {
     }
 }
 
+async function apiGetPaymentStatus(email) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/payment/status/${encodeURIComponent(email)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to get payment status');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('❌ Payment status error:', error);
+        return { success: false, error: error.message, hasPaid: false, isRegistered: false };
+    }
+}
+
 async function apiGetTotalRevenue() {
     try {
         const response = await fetch(`${API_BASE_URL}/payment/total-revenue`, {

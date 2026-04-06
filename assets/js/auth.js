@@ -413,7 +413,8 @@ async function completeRegistration() {
         userFormData = {};
 
         setTimeout(() => {
-            window.location.replace('dashboard.html');
+            // Registration complete — must pay before accessing dashboard
+            window.location.replace('../pages/payment.html');
         }, 3000);
 
     } catch (error) {
@@ -473,21 +474,28 @@ async function handleLogin() {
         localStorage.setItem('currentUser', JSON.stringify(user));
         localStorage.setItem('fitnesshub_user', JSON.stringify(user)); // For dashboard compatibility
 
-        showAlert('Login successful! Redirecting...', 'success');
+        showAlert('Login successful! Checking membership status...', 'success');
 
         setTimeout(async () => {
-             // Check membership status from server
-             const membershipResult = await apiGetActiveMembership(user.email);
-             let isPaid = false;
-             
-             if (membershipResult.success) {
-                 const membership = membershipResult.data?.membership || membershipResult.membership || membershipResult.data;
-                 if (membership && membership.status === 'active') {
-                     isPaid = true;
-                 }
-             }
+            // Check full payment/membership status from server
+            const statusResult = await apiGetPaymentStatus(user.email);
 
-            window.location.href = 'dashboard.html';
+            if (statusResult.hasPaid) {
+                // User has active membership → dashboard
+                window.location.href = '../pages/dashboard.html';
+            } else if (statusResult.hasSelectedMembership) {
+                // User selected a plan but hasn't paid → payment page
+                window.location.href = '../pages/payment.html';
+            } else {
+                // No plan selected yet → dashboard (or handle edge case)
+                // Fallback: if membership_status is active from DB, allow in
+                const dbStatus = user.membership_status;
+                if (dbStatus === 'active') {
+                    window.location.href = '../pages/dashboard.html';
+                } else {
+                    window.location.href = '../pages/payment.html';
+                }
+            }
         }, 1000);
 
     } catch (error) {
@@ -802,38 +810,78 @@ function showPaymentProcessing() {
     }
 }
 
-function finalizePayment() {
+async function finalizePayment() {
     try {
         const sessionRaw = localStorage.getItem(KEY_SESSION);
         const session = sessionRaw ? JSON.parse(sessionRaw) : null;
 
-        if (session?.email) {
-            const user = findUser(session.email);
-            if (user) {
-                user.isPaid        = true;
-                user.paymentStatus = 'completed'; // Matches admin dashboard verification
-                user.paymentDate   = new Date().toISOString();
-                user.transactionId = 'TXN_' + Date.now();
-                saveUser(user);
-            }
+        if (!session?.email) {
+            showAlert('Session expired. Please log in again.', 'error');
+            setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+            return;
         }
 
-        // Show success then redirect
-        const container = document.querySelector('.payment-container, .container');
+        const email = session.email;
+
+        // 1. Get the pending membership ID from server
+        const latestMemResult = await apiGetLatestMembership(email);
+        const membership = latestMemResult?.membership || latestMemResult?.data?.membership;
+
+        if (!membership || !membership.id) {
+            showAlert('No pending membership found. Please contact support.', 'error');
+            return;
+        }
+
+        const membershipId = membership.id;
+        const amount = membership.price || 0;
+        const method = sessionStorage.getItem('fitnesshub_payment_method') || 'card';
+
+        // 2. Create payment record on server
+        const paymentResult = await apiCreatePayment(email, membershipId, amount, method);
+        if (!paymentResult.success) {
+            throw new Error(paymentResult.error || 'Payment recording failed');
+        }
+
+        // 3. Activate membership on server
+        const activateResult = await apiActivateMembership({ email, membershipId });
+        if (!activateResult.success) {
+            throw new Error(activateResult.error || 'Membership activation failed');
+        }
+
+        // 4. Update local storage flags
+        const userRaw = localStorage.getItem('fitnesshub_user');
+        if (userRaw) {
+            const user = JSON.parse(userRaw);
+            user.isPaid = true;
+            user.paymentStatus = 'completed';
+            user.membership_status = 'active';
+            localStorage.setItem('fitnesshub_user', JSON.stringify(user));
+            localStorage.setItem('currentUser', JSON.stringify(user));
+        }
+
+        // 5. Show success screen then redirect
+        const container = document.querySelector('.payment-container, .container, main');
         if (container) {
             container.innerHTML = `
                 <div style="text-align:center; padding:80px 20px; font-family:'Inter',sans-serif; color:#f0f2ff;">
                     <div style="font-size:80px; margin-bottom:24px; color:#00d464;">✅</div>
                     <h2 style="font-family:'Space Grotesk',sans-serif; font-size:36px; text-transform:uppercase; margin-bottom:16px;">Payment Successful!</h2>
                     <p style="color:#7a80a8; font-size:18px; margin-bottom:32px;">Welcome to Fitness Hub! Your membership is now active.</p>
-                    <p style="color:#7a80a8; font-size:14px;">Redirecting to dashboard...</p>
+                    <p style="color:#7a80a8; font-size:14px;">Redirecting to your dashboard...</p>
                 </div>`;
         }
 
         setTimeout(() => { window.location.href = 'dashboard.html'; }, 2500);
+
     } catch (e) {
         console.error('Payment finalization error:', e);
-        window.location.href = 'dashboard.html';
+        showAlert('Payment error: ' + e.message, 'error');
+        // Re-enable button
+        const btn = document.querySelector('.btn-success, .btn-payment');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-lock"></i> Complete Payment';
+        }
     }
 }
 

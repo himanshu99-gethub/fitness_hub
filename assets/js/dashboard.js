@@ -70,28 +70,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadAdminAssignments();
         
         // Check profile completion status
-        setTimeout(() => {
+        setTimeout(async () => {
             const user = window.dashboardState.userProfile;
-            
-            const isPaid = user && (
-                user.membership_status === 'active' || 
-                user.isPaid === true || 
-                user.paymentStatus === 'completed' || 
-                user.paymentStatus === 'paid' ||
-                user.status === 'active'
-            );
-            
-            if (!isPaid) {
-                console.log('⚠️ Payment not complete or membership inactive - blocking access');
-                alert('You need an active membership to access the dashboard. Please contact administrator.');
-                localStorage.removeItem('fitnesshub_session');
-                window.location.href = 'index.html';
+            const email = user?.email;
+
+            if (!email) {
+                window.location.href = 'login.html';
                 return;
             }
-            
-            checkProfileCompletion();
-            loadPaymentHistory();
-        }, 200);
+
+            try {
+                // Server-side check: cannot be bypassed by URL manipulation
+                const status = await apiGetPaymentStatus(email);
+
+                if (!status.isRegistered) {
+                    alert('Account not found. Please register.');
+                    localStorage.removeItem('fitnesshub_session');
+                    window.location.href = '../pages/register.html';
+                    return;
+                }
+                
+                if (!status.hasPaid) {
+                    // User has not paid → payment page
+                    console.log('⚠️ No active membership — redirecting to payment');
+                    alert('You need to complete payment before accessing the dashboard.');
+                    localStorage.removeItem('fitnesshub_session');
+                    window.location.href = '../pages/payment.html';
+                    return;
+                }
+
+                // ✅ Paid — show dashboard
+                console.log('✅ Active membership confirmed — loading dashboard');
+                checkProfileCompletion();
+                loadPaymentHistory();
+
+            } catch (err) {
+                // Server unavailable: check local state as fallback
+                console.warn('⚠️ Could not reach server for payment check, using local state:', err);
+                const isPaid = user && (
+                    user.membership_status === 'active' || user.isPaid === true ||
+                    user.paymentStatus === 'completed' || user.paymentStatus === 'paid'
+                );
+                if (!isPaid) {
+                    alert('Unable to verify membership. Please log in again.');
+                    localStorage.removeItem('fitnesshub_session');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                checkProfileCompletion();
+                loadPaymentHistory();
+            }
+        }, 300);
         
         // Initialize charts
         setTimeout(() => {

@@ -220,6 +220,45 @@ app.get('/api/payment/history/:email', async (req, res) => {
     }
 });
 
+// Payment / Membership Status Check
+// Returns: { isRegistered, hasSelectedMembership, hasPaid, membershipStatus, redirectTo }
+app.get('/api/payment/status/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        const userResult = await findUserByEmail(email);
+        
+        if (!userResult.success || !userResult.user) {
+            return res.json({ 
+                isRegistered: false, hasSelectedMembership: false, hasPaid: false,
+                membershipStatus: null, redirectTo: 'register.html'
+            });
+        }
+
+        const user = userResult.user;
+        const latestMem = await getUserLatestMembership(user.id);
+        const activeMem = await getUserActiveMembership(user.id);
+
+        const hasSelectedMembership = !!(latestMem.success && latestMem.membership);
+        const hasPaid = !!(activeMem.success && activeMem.membership);
+        const membershipStatus = latestMem.membership?.status || user.membership_status || 'none';
+
+        let redirectTo = 'register.html';
+        if (hasPaid) redirectTo = 'dashboard.html';
+        else if (hasSelectedMembership) redirectTo = 'payment.html';
+        else redirectTo = 'pages/register.html';
+
+        res.json({ 
+            isRegistered: true, hasSelectedMembership, hasPaid,
+            membershipStatus, 
+            membership: latestMem.membership,
+            redirectTo
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
 app.get('/api/admin/users', async (req, res) => {
     try {
         const result = await getAllUsers();

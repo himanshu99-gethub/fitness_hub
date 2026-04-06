@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Payment - Fitness Hub</title>
+    <meta name="description" content="Complete your membership payment to access the Fitness Hub dashboard.">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+    <link href="../assets/css/style.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0d0f1a;
+            --bg-surface: #13162a;
+            --bg-card: #1a1f38;
+            --accent: #c8ff00;
+            --accent-dim: rgba(200,255,0,0.12);
+            --border-color: #2a2f50;
+            --text-main: #e8ecff;
+            --text-muted: #6b74a8;
+            --red: #ff4d6d;
+            --green: #00d464;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-base);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* ── PAGE GUARD OVERLAY ─────────────────── */
+        #pageGuard {
+            position: fixed; inset: 0;
+            background: var(--bg-base);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999;
+            flex-direction: column; gap: 16px;
+        }
+        #pageGuard .spinner {
+            width: 48px; height: 48px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── HEADER ─────────────────────────────── */
+        .pay-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 20px 40px;
+            border-bottom: 2px solid var(--border-color);
+            background: var(--bg-surface);
+        }
+        .pay-header .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 22px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: -0.03em;
+            color: var(--accent);
+        }
+        .pay-header .steps {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; color: var(--text-muted);
+        }
+        .pay-header .steps .step-item {
+            display: flex; align-items: center; gap: 6px;
+        }
+        .pay-header .steps .step-dot {
+            width: 24px; height: 24px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700;
+        }
+        .step-dot.done   { background: var(--green); color: #000; }
+        .step-dot.active { background: var(--accent); color: #000; }
+        .step-dot.todo   { background: var(--border-color); color: var(--text-muted); }
+        .step-sep { width: 32px; height: 2px; background: var(--border-color); }
+        .step-sep.done { background: var(--green); }
+
+        /* ── MAIN LAYOUT ─────────────────────────── */
+        .pay-main {
+            max-width: 940px; margin: 0 auto;
+            padding: 40px 20px;
+            display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px;
+        }
+        @media (max-width: 700px) { .pay-main { grid-template-columns: 1fr; } }
+
+        /* ── ORDER SUMMARY ────────────────────────── */
+        .order-card {
+            background: var(--bg-surface);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 28px;
+            height: fit-content;
+            position: sticky; top: 20px;
+        }
+        .order-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: -0.02em;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .plan-badge {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-size: 11px; font-weight: 700;
+            padding: 4px 10px; border-radius: 4px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            display: inline-block; margin-bottom: 12px;
+        }
+        .plan-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 24px; font-weight: 800;
+            letter-spacing: -0.04em; margin-bottom: 4px;
+        }
+        .plan-price {
+            font-size: 32px; font-weight: 700; color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .plan-price span { font-size: 16px; color: var(--text-muted); font-weight: 400; }
+        .plan-duration { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+        .plan-features {
+            list-style: none; padding: 0; margin: 0 0 20px;
+        }
+        .plan-features li {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 0; font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .plan-features li i { color: var(--green); width: 14px; }
+        .total-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 0;
+            border-top: 2px solid var(--border-color);
+            font-weight: 700; font-size: 18px;
+        }
+        .total-row .total-val { color: var(--accent); font-size: 24px; }
+        .security-note {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: var(--text-muted);
+            margin-top: 16px;
+            padding: 10px 14px;
+            background: rgba(0,212,100,0.05);
+            border: 1px solid rgba(0,212,100,0.15);
+            border-radius: 6px;
+        }
+        .security-note i { color: var(--green); }
+
+        /* ── PAYMENT FORM ─────────────────────────── */
+        .payment-card {
+            background: var(--bg-surface);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 28px;
+        }
+        .payment-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: -0.02em;
+            margin-bottom: 24px;
+        }
+        .method-tabs {
+            display: flex; gap: 8px; margin-bottom: 24px;
+        }
+        .method-tab {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; gap: 6px;
+            padding: 12px 8px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px; color: var(--text-muted);
+        }
+        .method-tab i { font-size: 20px; }
+        .method-tab.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+        .method-tab:hover:not(.active) {
+            border-color: var(--text-muted);
+            color: var(--text-main);
+        }
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+
+        .pay-label {
+            display: block; font-size: 12px; font-weight: 600;
+            color: var(--text-muted); text-transform: uppercase;
+            letter-spacing: 0.05em; margin-bottom: 6px;
+        }
+        .pay-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+            margin-bottom: 16px;
+        }
+        .pay-input:focus { border-color: var(--accent); }
+        .pay-input::placeholder { color: var(--text-muted); }
+
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .card-icon-row {
+            display: flex; gap: 8px; margin-bottom: 20px;
+        }
+        .card-icon-row img, .card-icon-row span {
+            height: 28px; opacity: 0.6;
+        }
+        .card-brand {
+            font-size: 22px; filter: grayscale(1); opacity: 0.6;
+        }
+
+        .upi-input-wrap {
+            position: relative;
+        }
+        .upi-input-wrap .pay-input { padding-left: 90px; }
+        .upi-prefix {
+            position: absolute; left: 14px; top: 14px;
+            font-size: 14px; color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        /* Netbanking bank list */
+        .bank-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            margin-bottom: 16px;
+        }
+        .bank-btn {
+            padding: 12px 8px; text-align: center;
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px; color: var(--text-muted);
+            transition: all 0.2s;
+        }
+        .bank-btn i { display: block; font-size: 20px; margin-bottom: 4px; }
+        .bank-btn.selected { border-color: var(--accent); color: var(--accent); }
+
+        /* Alert box */
+        #payAlertContainer .pay-alert {
+            padding: 12px 16px; margin-bottom: 16px;
+            border-radius: 6px; font-size: 14px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .pay-alert.error   { background: rgba(255,77,109,0.1); border: 1px solid var(--red); color: #ff8090; }
+        .pay-alert.success { background: rgba(0,212,100,0.1); border: 1px solid var(--green); color: #60ffaa; }
+        .pay-alert.info    { background: rgba(200,255,0,0.08); border: 1px solid var(--accent); color: var(--accent); }
+
+        /* Submit button */
+        .btn-pay {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            color: #000;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 0.03em;
+            border: none; border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .btn-pay:hover { background: #b8ff00; transform: translateY(-1px); }
+        .btn-pay:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; color: #000; }
+
+        .pay-footer-note {
+            text-align: center; font-size: 12px; color: var(--text-muted);
+            margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .pay-footer-note i { color: var(--green); }
+
+        /* ── SUCCESS STATE ────────────────────────── */
+        #successState {
+            display: none;
+            text-align: center; padding: 60px 20px;
+        }
+        .success-icon-big {
+            font-size: 72px; color: var(--green);
+            margin-bottom: 20px;
+            animation: popIn 0.4s cubic-bezier(.36,.07,.19,.97);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Page Guard: shown while checking auth, hidden once verified -->
+<div id="pageGuard">
+    <div class="spinner"></div>
+    <p style="color:var(--text-muted); font-size:14px;">Verifying membership status...</p>
+</div>
+
+<!-- Header -->
+<header class="pay-header">
+    <div class="logo"><i class="fas fa-dumbbell"></i> Fitness Hub</div>
+    <div class="steps">
+        <div class="step-item">
+            <div class="step-dot done"><i class="fas fa-check"></i></div>
+            <span>Register</span>
+        </div>
+        <div class="step-sep done"></div>
+        <div class="step-item">
+            <div class="step-dot done"><i class="fas fa-check"></i></div>
+            <span>Plan Selected</span>
+        </div>
+        <div class="step-sep"></div>
+        <div class="step-item">
+            <div class="step-dot active">3</div>
+            <span style="color:var(--text-main); font-weight:600;">Payment</span>
+        </div>
+        <div class="step-sep"></div>
+        <div class="step-item">
+            <div class="step-dot todo">4</div>
+            <span>Dashboard</span>
+        </div>
+    </div>
+</header>
+
+<main class="pay-main" id="payMain">
+    <!-- Left: Order Summary -->
+    <div class="order-card">
+        <h3>Order Summary</h3>
+        <div class="plan-badge" id="planBadge">Membership</div>
+        <div class="plan-name" id="planName">Loading...</div>
+        <div class="plan-price" id="planPrice">₹—<span>/month</span></div>
+        <div class="plan-duration" id="planDuration">30-day access</div>
+
+        <ul class="plan-features" id="planFeatures">
+            <li><i class="fas fa-spinner fa-spin"></i> Loading plan details...</li>
+        </ul>
+
+        <div class="total-row">
+            <span>Total Due Today</span>
+            <span class="total-val" id="totalDue">₹—</span>
+        </div>
+        <div class="security-note">
+            <i class="fas fa-shield-alt"></i>
+            <span>Secured by 256-bit SSL encryption</span>
+        </div>
+    </div>
+
+    <!-- Right: Payment Form -->
+    <div class="payment-card">
+        <h3><i class="fas fa-credit-card" style="color:var(--accent); margin-right:8px;"></i>Payment Details</h3>
+
+        <div id="payAlertContainer"></div>
+
+        <!-- Payment Method Tabs -->
+        <div class="method-tabs">
+            <div class="method-tab active" id="tab-card" onclick="switchMethod('card')">
+                <i class="fas fa-credit-card"></i>
+                Card
+            </div>
+            <div class="method-tab" id="tab-upi" onclick="switchMethod('upi')">
+                <i class="fas fa-mobile-alt"></i>
+                UPI
+            </div>
+            <div class="method-tab" id="tab-netbanking" onclick="switchMethod('netbanking')">
+                <i class="fas fa-university"></i>
+                Net Banking
+            </div>
+            <div class="method-tab" id="tab-wallet" onclick="switchMethod('wallet')">
+                <i class="fas fa-wallet"></i>
+                Wallet
+            </div>
+        </div>
+
+        <!-- Card Section -->
+        <div class="form-section active" id="section-card">
+            <div class="card-icon-row">
+                <span class="card-brand">💳</span>
+                <span style="font-size:11px; color:var(--text-muted); align-self:center;">Visa, Mastercard, Rupay accepted</span>
+            </div>
+            <label class="pay-label">Card Number</label>
+            <input type="text" id="cardNumber" class="pay-input" placeholder="1234 5678 9012 3456" maxlength="19" inputmode="numeric">
+
+            <label class="pay-label">Cardholder Name</label>
+            <input type="text" id="cardName" class="pay-input" placeholder="Name as on card">
+
+            <div class="row-2">
+                <div>
+                    <label class="pay-label">Expiry Date</label>
+                    <input type="text" id="cardExpiry" class="pay-input" placeholder="MM/YY" maxlength="5">
+                </div>
+                <div>
+                    <label class="pay-label">CVV</label>
+                    <input type="text" id="cardCVC" class="pay-input" placeholder="•••" maxlength="3" inputmode="numeric">
+                </div>
+            </div>
+        </div>
+
+        <!-- UPI Section -->
+        <div class="form-section" id="section-upi">
+            <label class="pay-label">UPI ID</label>
+            <div class="upi-input-wrap">
+                <span class="upi-prefix">UPI / </span>
+                <input type="text" id="upiId" class="pay-input" placeholder="yourname@upi">
+            </div>
+            <p style="font-size:12px; color:var(--text-muted);">
+                <i class="fas fa-info-circle"></i> Enter your UPI ID (e.g., name@okaxis, name@paytm)
+            </p>
+        </div>
+
+        <!-- Net Banking Section -->
+        <div class="form-section" id="section-netbanking">
+            <label class="pay-label">Select Your Bank</label>
+            <div class="bank-grid">
+                <div class="bank-btn" onclick="selectBank(this, 'sbi')">
+                    <i class="fas fa-university"></i>SBI
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'hdfc')">
+                    <i class="fas fa-university"></i>HDFC
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'icici')">
+                    <i class="fas fa-university"></i>ICICI
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'axis')">
+                    <i class="fas fa-university"></i>Axis
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'kotak')">
+                    <i class="fas fa-university"></i>Kotak
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'other')">
+                    <i class="fas fa-university"></i>Other
+                </div>
+            </div>
+        </div>
+
+        <!-- Wallet Section -->
+        <div class="form-section" id="section-wallet">
+            <label class="pay-label">Select Wallet</label>
+            <div class="bank-grid">
+                <div class="bank-btn" onclick="selectBank(this, 'paytm')">
+                    <i class="fas fa-wallet"></i>Paytm
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'phonepe')">
+                    <i class="fas fa-wallet"></i>PhonePe
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'gpay')">
+                    <i class="fas fa-wallet"></i>GPay
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'amazonpay')">
+                    <i class="fas fa-wallet"></i>Amazon Pay
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'mobikwik')">
+                    <i class="fas fa-wallet"></i>MobiKwik
+                </div>
+                <div class="bank-btn" onclick="selectBank(this, 'freecharge')">
+                    <i class="fas fa-wallet"></i>Freecharge
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-pay" id="payBtn" onclick="initiatePayment()">
+            <i class="fas fa-lock"></i>
+            <span id="payBtnText">Complete Payment</span>
+        </button>
+        <div class="pay-footer-note">
+            <i class="fas fa-shield-alt"></i>
+            Your payment is encrypted and 100% secure
+        </div>
+    </div>
+</main>
+
+<!-- Success State (replaces pay-main) -->
+<div id="successState" style="max-width:600px; margin:0 auto;">
+    <div class="success-icon-big">✅</div>
+    <h2 style="font-family:'Space Grotesk',sans-serif; font-size:36px; font-weight:800; text-transform:uppercase; letter-spacing:-0.04em; margin-bottom:12px;">
+        Payment Successful!
+    </h2>
+    <p style="color:var(--text-muted); font-size:18px; margin-bottom:8px;">
+        Welcome to Fitness Hub! Your membership is now <strong style="color:var(--green);">active</strong>.
+    </p>
+    <p style="color:var(--text-muted); font-size:14px;">
+        Transaction ID: <strong id="txnId" style="color:var(--text-main);"></strong>
+    </p>
+    <p style="color:var(--text-muted); font-size:14px; margin-top:24px;">
+        Redirecting to your dashboard in <span id="countdown" style="color:var(--accent);">3</span>s...
+    </p>
+</div>
+
+<script src="../assets/js/api-client.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script>
+// ── PAYMENT PAGE CONTROLLER ──────────────────────────────────
+const KEY_SESSION = 'fitnesshub_session';
+let currentMethod = 'card';
+let selectedBank = null;
+let pendingMembership = null;
+
+// ── GUARD: Check auth and redirect if needed ─────────────────
+async function guardPage() {
+    const sessionRaw = localStorage.getItem(KEY_SESSION);
+    if (!sessionRaw) {
+        // No session → login
+        window.location.href = 'login.html';
+        return;
+    }
+
+    let email;
+    try { email = JSON.parse(sessionRaw).email; } catch (e) { email = null; }
+
+    if (!email) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    try {
+        // Check true payment status from server
+        const status = await apiGetPaymentStatus(email);
+
+        if (status.hasPaid) {
+            // Already paid → go to dashboard
+            window.location.href = 'dashboard.html';
+            return;
+        }
+
+        if (!status.isRegistered) {
+            window.location.href = '../pages/register.html';
+            return;
+        }
+
+        // User is registered, not yet paid → show payment page
+        pendingMembership = status.membership;
+        renderPlanSummary(pendingMembership);
+
+    } catch (err) {
+        console.error('Guard error:', err);
+        // If server unreachable, show payment page anyway (fail open)
+        renderPlanSummary(null);
+    }
+
+    // Hide guard, show page
+    document.getElementById('pageGuard').style.display = 'none';
+}
+
+// ── PLAN SUMMARY ─────────────────────────────────────────────
+function renderPlanSummary(mem) {
+    const planFeatureSets = {
+        'Starter Pack':  ['Access to all gym equipment', 'Basic workout plans', 'Locker room access'],
+        'Professional':  ['Everything in Starter', 'Personal trainer sessions (2/month)', 'Diet consultation', 'Group fitness classes'],
+        'Elite Plus':    ['Everything in Professional', 'Unlimited personal training', 'Priority class booking', 'Custom diet plan', 'Sports massage (1/month)']
+    };
+
+    const planName  = mem?.plan_name || 'Membership Plan';
+    const planPrice = mem?.price || 0;
+
+    document.getElementById('planName').textContent  = planName;
+    document.getElementById('planPrice').innerHTML   = `₹${planPrice}<span>/month</span>`;
+    document.getElementById('planBadge').textContent = planName;
+    document.getElementById('totalDue').textContent  = `₹${planPrice}`;
+
+    const features = planFeatureSets[planName] || ['Full gym access', 'Basic membership benefits'];
+    const ul = document.getElementById('planFeatures');
+    ul.innerHTML = features.map(f => `<li><i class="fas fa-check"></i>${f}</li>`).join('');
+
+    // Update pay button with amount
+    document.getElementById('payBtnText').textContent = `Pay ₹${planPrice} Now`;
+}
+
+// ── METHOD SWITCHER ───────────────────────────────────────────
+function switchMethod(method) {
+    currentMethod = method;
+    selectedBank = null;
+    sessionStorage.setItem('fitnesshub_payment_method', method);
+
+    document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`tab-${method}`).classList.add('active');
+
+    document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+    document.getElementById(`section-${method}`).classList.add('active');
+}
+
+function selectBank(el, bank) {
+    document.querySelectorAll('.bank-btn').forEach(b => b.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedBank = bank;
+}
+
+// ── VALIDATION ────────────────────────────────────────────────
+function validatePaymentForm() {
+    if (currentMethod === 'card') {
+        const num  = document.getElementById('cardNumber')?.value.replace(/\s/g,'');
+        const name = document.getElementById('cardName')?.value.trim();
+        const exp  = document.getElementById('cardExpiry')?.value.trim();
+        const cvc  = document.getElementById('cardCVC')?.value.trim();
+        if (!num || num.length < 16) { showPayAlert('Please enter a valid 16-digit card number.', 'error'); return false; }
+        if (!name)  { showPayAlert('Please enter the cardholder name.', 'error'); return false; }
+        if (!exp || !/^\d{2}\/\d{2}$/.test(exp)) { showPayAlert('Please enter a valid expiry date (MM/YY).', 'error'); return false; }
+        if (!cvc || cvc.length < 3) { showPayAlert('Please enter a valid CVV.', 'error'); return false; }
+    } else if (currentMethod === 'upi') {
+        const upi = document.getElementById('upiId')?.value.trim();
+        if (!upi || !upi.includes('@')) { showPayAlert('Please enter a valid UPI ID (e.g., name@upi).', 'error'); return false; }
+    } else if (currentMethod === 'netbanking' || currentMethod === 'wallet') {
+        if (!selectedBank) { showPayAlert('Please select a ' + (currentMethod === 'wallet' ? 'wallet' : 'bank') + '.', 'error'); return false; }
+    }
+    return true;
+}
+
+// ── SHOW ALERT ────────────────────────────────────────────────
+function showPayAlert(msg, type) {
+    const c = document.getElementById('payAlertContainer');
+    c.innerHTML = `<div class="pay-alert ${type}"><i class="fas fa-${type==='error'?'exclamation-circle':type==='success'?'check-circle':'info-circle'}"></i>${msg}</div>`;
+    setTimeout(() => { if (c.firstChild) c.firstChild.remove(); }, 5000);
+}
+
+// ── INITIATE PAYMENT ──────────────────────────────────────────
+async function initiatePayment() {
+    if (!validatePaymentForm()) return;
+
+    const payBtn = document.getElementById('payBtn');
+    const payBtnText = document.getElementById('payBtnText');
+    payBtn.disabled = true;
+    payBtnText.textContent = 'Processing Payment...';
+    payBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+
+    // Simulate processing delay
+    await new Promise(r => setTimeout(r, 1500));
+
+    try {
+        const sessionRaw = localStorage.getItem(KEY_SESSION);
+        const email = JSON.parse(sessionRaw).email;
+
+        // Get latest membrane (pending) from server
+        const latestMemResult = await apiGetLatestMembership(email);
+        const membership = latestMemResult?.membership;
+
+        if (!membership || !membership.id) {
+            throw new Error('No pending membership found. Please register again or contact support.');
+        }
+
+        const membershipId = membership.id;
+        const amount = membership.price || 0;
+
+        // 1. Create payment record
+        const paymentResult = await apiCreatePayment(email, membershipId, amount, currentMethod);
+        if (!paymentResult.success) throw new Error(paymentResult.error || 'Payment recording failed');
+
+        // 2. Activate membership
+        const activateResult = await apiActivateMembership({ email, membershipId });
+        if (!activateResult.success) throw new Error(activateResult.error || 'Membership activation failed');
+
+        // 3. Update local storage
+        const userRaw = localStorage.getItem('fitnesshub_user');
+        if (userRaw) {
+            const user = JSON.parse(userRaw);
+            user.isPaid = true; user.paymentStatus = 'completed'; user.membership_status = 'active';
+            localStorage.setItem('fitnesshub_user', JSON.stringify(user));
+            localStorage.setItem('currentUser', JSON.stringify(user));
+        }
+
+        // 4. Show success
+        const txnId = 'FH' + Date.now();
+        document.getElementById('payMain').style.display = 'none';
+        const ss = document.getElementById('successState');
+        ss.style.display = 'block';
+        document.getElementById('txnId').textContent = txnId;
+
+        // Countdown redirect
+        let count = 3;
+        const interval = setInterval(() => {
+            count--;
+            const el = document.getElementById('countdown');
+            if (el) el.textContent = count;
+            if (count <= 0) {
+                clearInterval(interval);
+                window.location.href = 'dashboard.html';
+            }
+        }, 1000);
+
+    } catch (err) {
+        console.error('Payment error:', err);
+        showPayAlert('Payment failed: ' + err.message, 'error');
+        payBtn.disabled = false;
+        payBtnText.textContent = 'Try Again';
+        payBtn.querySelector('i').className = 'fas fa-lock';
+    }
+}
+
+// ── FORMAT CARD NUMBER ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const cardNum = document.getElementById('cardNumber');
+    if (cardNum) {
+        cardNum.addEventListener('input', e => {
+            let v = e.target.value.replace(/\D/g, '').slice(0, 16);
+            v = v.match(/.{1,4}/g)?.join(' ') || v;
+            e.target.value = v;
+        });
+    }
+    const cardExp = document.getElementById('cardExpiry');
+    if (cardExp) {
+        cardExp.addEventListener('input', e => {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2,4);
+            e.target.value = v;
+        });
+    }
+    const cardCVC = document.getElementById('cardCVC');
+    if (cardCVC) {
+        cardCVC.addEventListener('input', e => {
+            e.target.value = e.target.value.replace(/\D/g,'').slice(0,3);
+        });
+    }
+
+    // Set default payment method
+    sessionStorage.setItem('fitnesshub_payment_method', 'card');
+
+    // Run guard
+    guardPage();
+});
+</script>
+</body>
+</html>
