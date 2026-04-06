@@ -13,11 +13,7 @@ async function apiRegisterUser(userData) {
                 password: userData.password
             })
         });
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Registration failed');
-        }
-        return { success: true, data: await response.json() };
+        return await response.json();
     } catch (error) {
         console.error('❌ Registration error:', error);
         return { success: false, error: error.message };
@@ -31,11 +27,7 @@ async function apiLoginUser(email, password) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Login failed');
-        }
-        return { success: true, data: await response.json() };
+        return await response.json();
     } catch (error) {
         console.error('❌ Login error:', error);
         return { success: false, error: error.message };
@@ -130,11 +122,7 @@ async function apiCreateMembership(email, plan, price, duration = 30) {
                 endDate: endDate.toISOString()
             })
         });
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Membership creation failed');
-        }
-        return { success: true, data: await response.json() };
+        return await response.json();
     } catch (error) {
         console.error('❌ Membership creation error:', error);
         return { success: false, error: error.message };
@@ -155,11 +143,7 @@ async function apiActivateMembership(dataOrId, maybeMemId) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Activation failed');
-        }
-        return { success: true, data: await response.json() };
+        return await response.json();
     } catch (error) {
         console.error('❌ Membership activation error:', error);
         return { success: false, error: error.message };
@@ -168,15 +152,11 @@ async function apiActivateMembership(dataOrId, maybeMemId) {
 
 async function apiGetLatestMembership(email) {
     try {
-        const response = await fetch(`${API_BASE_URL}/membership/latest/${email}`, {
+        const response = await fetch(`${API_BASE_URL}/membership/latest/${encodeURIComponent(email)}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to fetch membership');
-        }
-        return { success: true, data: await response.json() };
+        return await response.json();
     } catch (error) {
         console.error('❌ Get latest membership error:', error);
         return { success: false, error: error.message };

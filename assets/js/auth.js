@@ -319,7 +319,7 @@ async function completeRegistration() {
             throw new Error(regResult.error || 'Registration failed');
         }
 
-        const userRecord = regResult.data.user;
+        const userRecord = regResult.data;
 
         // 2. Create Membership on Server (starts as 'pending')
         const memResult = await apiCreateMembership(
@@ -333,7 +333,11 @@ async function completeRegistration() {
             console.warn('Membership creation failed, but user was registered:', memResult.error);
         } else {
             // Store the membership ID in the user record for easier activation
-            userRecord.currentMembershipId = memResult.data.membership.id;
+            // membership is in memResult.membership (from supabaseHelpers)
+            const mem = memResult.membership || memResult.data?.membership || memResult.data;
+            if (mem && mem.id) {
+                userRecord.currentMembershipId = mem.id;
+            }
         }
 
         // 3. Clear ANY legacy status flags and local storage
@@ -409,7 +413,7 @@ async function handleLogin() {
             throw new Error(result.error || 'Login failed');
         }
 
-        const user = result.data.user;
+        const user = result.data;
 
         // Save session (Full Profile)
         localStorage.setItem(KEY_SESSION, JSON.stringify({

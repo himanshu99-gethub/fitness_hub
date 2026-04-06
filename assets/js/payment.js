@@ -29,12 +29,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!savedPlan) {
                 console.log('🔄 No plan in local storage, checking server for pending membership...');
                 const memResponse = await apiGetLatestMembership(currentUser.email);
-                if (memResponse.success && memResponse.data && memResponse.data.membership) {
-                    const mem = memResponse.data.membership;
+                const mem = memResponse.membership || memResponse.data?.membership || memResponse.data;
+                
+                if (memResponse.success && mem && mem.id) {
                     currentPlan = {
                         id: mem.id,
                         name: mem.plan_name,
-                        price: mem.price,
+                        price: mem.price || mem.amount,
                         type: mem.plan_type
                     };
                 } else {
@@ -199,10 +200,11 @@ async function processPayment(e) {
         };
 
         if (!activationData.membershipId) {
-             // Second attempt if ID was somehow missed (like when currentPlan is the static plan data)
+             // Second attempt if ID was somehow missed (common when coming directly from registration)
              const memFetch = await apiGetLatestMembership(currentUser.email);
-             if (memFetch.success && memFetch.data && memFetch.data.membership) {
-                 activationData.membershipId = memFetch.data.membership.id;
+             const mem = memFetch.membership || memFetch.data?.membership || memFetch.data;
+             if (memFetch.success && mem && mem.id) {
+                 activationData.membershipId = mem.id;
              }
         }
 

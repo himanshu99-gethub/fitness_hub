@@ -79,7 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 user.membership_status === 'active' || 
                 user.isPaid === true || 
                 user.paymentStatus === 'completed' || 
-                user.paymentStatus === 'paid'
+                user.paymentStatus === 'paid' ||
+                user.status === 'active'
             );
             
             if (!isPaid) {
@@ -139,10 +140,13 @@ async function loadUserData() {
                 
                 // Determine membership status from server data
                 const membershipResponse = await apiGetActiveMembership(userEmail);
-                if (membershipResponse.success && membershipResponse.data && membershipResponse.data.membership) {
-                    serverUser.membership_status = membershipResponse.data.membership.status;
-                    serverUser.currentMembershipId = membershipResponse.data.membership.id;
-                    serverUser.plan = membershipResponse.data.membership.plan;
+                const mem = membershipResponse.membership || membershipResponse.data?.membership || membershipResponse.data;
+                
+                if (membershipResponse.success && mem) {
+                    serverUser.membership_status = mem.status || mem.membership_status;
+                    serverUser.currentMembershipId = mem.id;
+                    serverUser.plan = mem.plan_name || mem.plan;
+                    serverUser.expiryDate = mem.end_date || mem.expiryDate;
                 }
                 
                 // Update session-only state

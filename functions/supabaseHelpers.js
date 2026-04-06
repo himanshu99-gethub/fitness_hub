@@ -99,48 +99,63 @@ async function updateUserProfile(userId, updateData) {
 async function createMembership(membershipData) {
   if (!supabase) return { success: false, error: 'Database configuration missing' };
   try {
-    let { userId, email, planName, planType, plan, price, duration, durationUnit, startDate, endDate, features, autoRenew } = membershipData;
+    let { userId, email, planName, planType, plan, price, amount, duration, durationUnit, startDate, endDate, features, autoRenew } = membershipData;
     
-    // Resolve userId if not provided (for older clients or email-based registration flow)
-    if (!userId && email) {
-      const { data: user, error: uError } = await supabase.from('users').select('id').eq('email', email.toLowerCase()).maybeSingle();
-      if (user) userId = user.id;
+    // 1. Robust resolution: if userId is an email or looks like an email, resolve it
+    const identifier = (email || userId || "").toString();
+    if (identifier.includes('@') && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier)) {
+        console.log(`Resolving userId for email: ${identifier}`);
+        const { data: user, error: uError } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', identifier.toLowerCase())
+            .maybeSingle();
+            
+        if (user) {
+            userId = user.id;
+        } else if (uError) {
+            throw uError;
+        } else {
+            return { success: false, error: 'Cannot create membership: User not found' };
+        }
     }
 
-    if (!userId) return { success: false, error: 'User not found or ID missing' };
+    if (!userId) return { success: false, error: 'Cannot create membership: Missing User ID or email' };
 
-    // Set defaults from older fields if present
-    planName = planName || plan || 'Subscription';
+    // 2. Set defaults and aliases
+    planName = planName || plan || 'Subscription Item';
     planType = planType || 'monthly';
+    price = price || amount || 0;
     duration = duration || 30;
     durationUnit = durationUnit || 'days';
     
+    // 3. Create membership record
     const { data, error } = await supabase
       .from('memberships')
       .insert([{
         user_id: userId,
         plan_name: planName,
         plan_type: planType,
-        price,
+        price: price,
         duration,
         duration_unit: durationUnit,
         start_date: startDate || new Date().toISOString(),
-        end_date: endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        end_date: endDate || new Date(Date.now() + duration * 24 * 60 * 60 * 1000).toISOString(),
         status: 'pending', // Starts as pending until payment
         features,
-        auto_renew: autoRenew
+        auto_renew: autoRenew || false
       }])
       .select()
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) throw error;
 
-    // NOTE: We do NOT update user membership_status to 'active' here.
-    // It stays 'inactive' or 'pending' until confirmPayment/activateMembership is called.
+    // 4. Update user status to pending
     await supabase.from('users').update({ membership_status: 'pending' }).eq('id', userId);
     
     return { success: true, membership: data };
   } catch (error) {
+    console.error('❌ createMembership error:', error);
     return { success: false, error: error.message };
   }
 }
