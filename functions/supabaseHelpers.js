@@ -20,23 +20,33 @@ if (supabaseUrl && supabaseKey) {
 async function createUser(userData) {
   if (!supabase) return { success: false, error: 'Database configuration missing (SUPABASE_URL/KEY)' };
   try {
-    // Supabase table uses snake_case, JS uses camelCase usually
-    // mapping fields: firstName -> first_name, lastName -> last_name, etc.
-    const { email, password, firstName, lastName, phone, age, gender, weight, height, fitnessGoal } = userData;
+    // Extract fields
+    let { email, password, firstName, lastName, name, phone, age, gender, weight, height, fitnessGoal } = userData;
     
+    // Fallback: If only 'name' is provided, split it into first and last
+    if (!firstName && name) {
+      const parts = name.trim().split(' ');
+      firstName = parts[0];
+      lastName = parts.slice(1).join(' ') || 'User'; // Default last name if missing
+    }
+
+    // Final safety: ensures required fields are never null
+    firstName = firstName || 'New';
+    lastName = lastName || 'User';
+
     const { data, error } = await supabase
       .from('users')
       .insert([{
-        email,
-        password, // Ideally hashed, but keeping it simple as per original
+        email: email.toLowerCase(),
+        password, 
         first_name: firstName,
         last_name: lastName,
-        phone,
+        phone: phone || '',
         age: parseInt(age) || null,
-        gender,
+        gender: gender || 'Not Specified',
         weight: parseFloat(weight) || null,
         height: parseFloat(height) || null,
-        fitness_goal: fitnessGoal,
+        fitness_goal: fitnessGoal || 'General Fitness',
         role: 'user',
         is_verified: false,
         membership_status: 'inactive'
