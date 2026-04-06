@@ -503,34 +503,56 @@
 <script src="../assets/js/auth.js"></script>
 <script>
 // ── PAYMENT PAGE CONTROLLER ──────────────────────────────────
-const KEY_SESSION = 'fitnesshub_session';
 let currentMethod = 'card';
 let selectedBank = null;
 let pendingMembership = null;
 
 // ── GUARD: Check auth and redirect if needed ─────────────────
+function showPage() {
+    document.getElementById('pageGuard').style.display = 'none';
+}
+
 async function guardPage() {
+    // Safety net: always show page after 5 seconds max, no matter what
+    const guardTimeout = setTimeout(() => {
+        console.warn('⚠️ Guard timed out — showing page anyway');
+        renderPlanSummary(null);
+        showPage();
+    }, 5000);
+
     const sessionRaw = localStorage.getItem(KEY_SESSION);
     if (!sessionRaw) {
-        // No session → login
+        clearTimeout(guardTimeout);
         window.location.href = 'login.html';
         return;
     }
 
-    let email;
-    try { email = JSON.parse(sessionRaw).email; } catch (e) { email = null; }
+    // Support both JSON session {email:...} and plain email string
+    let email = null;
+    try {
+        const parsed = JSON.parse(sessionRaw);
+        email = parsed.email || parsed;
+    } catch (e) {
+        email = sessionRaw; // plain string
+    }
 
-    if (!email) {
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+        clearTimeout(guardTimeout);
         window.location.href = 'login.html';
         return;
     }
 
     try {
-        // Check true payment status from server
-        const status = await apiGetPaymentStatus(email);
+        // Race API call against timeout
+        const status = await Promise.race([
+            apiGetPaymentStatus(email),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))
+        ]);
+
+        clearTimeout(guardTimeout);
 
         if (status.hasPaid) {
-            // Already paid → go to dashboard
+            // Already paid → dashboard
             window.location.href = 'dashboard.html';
             return;
         }
@@ -540,18 +562,18 @@ async function guardPage() {
             return;
         }
 
-        // User is registered, not yet paid → show payment page
+        // User registered, not paid yet → show payment page
         pendingMembership = status.membership;
         renderPlanSummary(pendingMembership);
 
     } catch (err) {
-        console.error('Guard error:', err);
-        // If server unreachable, show payment page anyway (fail open)
+        clearTimeout(guardTimeout);
+        console.warn('⚠️ Guard check failed (server unreachable?) — showing page:', err.message);
+        // Fail open: show payment page, let the actual payment call handle any real errors
         renderPlanSummary(null);
     }
 
-    // Hide guard, show page
-    document.getElementById('pageGuard').style.display = 'none';
+    showPage();
 }
 
 // ── PLAN SUMMARY ─────────────────────────────────────────────
