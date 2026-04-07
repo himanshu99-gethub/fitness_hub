@@ -373,11 +373,50 @@ async function getAllUsers() {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(`
+        *,
+        memberships (
+          plan_name,
+          plan_type,
+          status,
+          created_at
+        )
+      `)
       .order('created_at', { ascending: false });
 
     if (error) return { success: false, error: error.message };
-    return { success: true, users: data };
+
+    // Map memberships to attach latest membership info directly to user for admin dashboard compatibility
+    const usersWithMembershipInfo = data.map(user => {
+      let planName = 'N/A';
+      let memStatus = user.membership_status || 'pending';
+      const isPaid = user.membership_status === 'active';
+
+      if (user.memberships && user.memberships.length > 0) {
+        // Sort to get the latest membership
+        user.memberships.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        const latestMembership = user.memberships[0];
+
+        planName = latestMembership.plan_name || latestMembership.plan_type || 'N/A';
+        // Overwrite status using latest membership if appropriate
+        if (latestMembership.status) {
+             memStatus = latestMembership.status;
+        }
+      }
+
+      // If user table still says active, we trust it as well
+      if (isPaid) {
+          memStatus = 'active';
+      }
+
+      return {
+        ...user,
+        plan: planName,
+        membership_status: memStatus
+      };
+    });
+
+    return { success: true, users: usersWithMembershipInfo };
   } catch (error) {
     return { success: false, error: error.message };
   }

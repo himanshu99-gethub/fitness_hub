@@ -1,0 +1,18 @@
+[
+  {
+    "id": "f5e6bdc5-ad00-4139-998b-c296b2c49d58",
+    "user_id": "7e67c37e-09ac-4333-aa9f-7163fefeaf7e",
+    "plan_name": "Starter Pack",
+    "plan_type": "monthly",
+    "price": 999,
+    "duration": 30,
+    "duration_unit": "days",
+    "start_date": "2026-04-06T13:37:35.713+00:00",
+    "end_date": "2026-05-06T13:37:35.713+00:00",
+    "status": "active",
+    "features": null,
+    "auto_renew": false,
+    "created_at": "2026-04-06T13:37:37.141197+00:00",
+    "updated_at": "2026-04-06T13:37:37.141197+00:00"
+  }
+]

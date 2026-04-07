@@ -339,11 +339,29 @@ async function apiLogoutUser(email) {
     }
 }
 
+async function apiUpdateUser(email, updateData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/user/${encodeURIComponent(email)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Update failed');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('❌ Update user error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         apiRegisterUser, apiLoginUser, apiGetProfile, apiGenerateOTP, apiVerifyOTP,
         apiCreateMembership, apiActivateMembership, apiGetLatestMembership, apiGetActiveMembership, apiGetMembershipHistory,
         apiCreatePayment, apiGetPaymentHistory, apiGetTotalRevenue,
-        apiHealthCheck, apiValidateSession, apiLogoutUser
+        apiHealthCheck, apiValidateSession, apiLogoutUser, apiUpdateUser
     };
 }

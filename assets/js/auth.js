@@ -18,19 +18,13 @@ const KEY_SESSION    = 'fitnesshub_session';
 const KEY_USER = 'currentUser';
 
 function findUser(email) {
-    // Legacy support: check local storage for user profile
-    const raw = localStorage.getItem('fitnesshub_user');
-    if (!raw) return null;
-    try {
-        const user = JSON.parse(raw);
-        return user.email === email ? user : null;
-    } catch(e) { return null; }
+    // No longer uses localStorage — Supabase is the source of truth
+    // This is only called in OTP flow as a fallback
+    return null;
 }
 
 function saveUser(user) {
-    if (!user) return;
-    localStorage.setItem('fitnesshub_user', JSON.stringify(user));
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    // No-op: Supabase is the source of truth, no localStorage needed
 }
 
 function isUserRegistered(email) {
@@ -386,17 +380,13 @@ async function completeRegistration() {
         // 3. Clear ANY legacy status flags and local storage
         clearAllStorage();
 
-        // 4. Create Local Session (Email and Full Profile)
+        // 4. Create Local Session (Email only — profile loaded from Supabase on dashboard)
         localStorage.setItem(KEY_SESSION, JSON.stringify({
             email:      userRecord.email,
             loginTime:  new Date().toISOString(),
             rememberMe: true,
             otpVerified: true
         }));
-
-        // Set the current user object for entire platform consistency
-        localStorage.setItem('currentUser', JSON.stringify(userRecord));
-        localStorage.setItem('fitnesshub_user', JSON.stringify(userRecord)); // For dashboard compatibility
 
         // Re-save plan specifically for payment page handover
         localStorage.setItem('fitnesshub_selected_plan', JSON.stringify(selectedPlan));
@@ -462,17 +452,13 @@ async function handleLogin() {
             throw new Error('User data missing from response');
         }
 
-        // Save session (Full Profile)
+        // Save session (Email only — profile loaded from Supabase on dashboard)
         localStorage.setItem(KEY_SESSION, JSON.stringify({
             email:      user.email,
             loginTime:  new Date().toISOString(),
             rememberMe: rememberMe || false,
             otpVerified: true
         }));
-
-        // Set the current user object for entire platform consistency
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        localStorage.setItem('fitnesshub_user', JSON.stringify(user)); // For dashboard compatibility
 
         showAlert('Login successful! Checking membership status...', 'success');
 
@@ -554,11 +540,6 @@ function verifyOTP() {
             sessionStorage.removeItem('fitnesshub_temp_email');
             sessionStorage.removeItem('fitnesshub_temp_password');
             sessionStorage.removeItem('fitnesshub_temp_remember');
-
-            const user = findUser(email);
-            if (user) {
-                localStorage.setItem(KEY_USER, JSON.stringify(user));
-            }
             window.location.href = 'dashboard.html';
         }, 1500);
     } else {
@@ -848,16 +829,7 @@ async function finalizePayment() {
             throw new Error(activateResult.error || 'Membership activation failed');
         }
 
-        // 4. Update local storage flags
-        const userRaw = localStorage.getItem('fitnesshub_user');
-        if (userRaw) {
-            const user = JSON.parse(userRaw);
-            user.isPaid = true;
-            user.paymentStatus = 'completed';
-            user.membership_status = 'active';
-            localStorage.setItem('fitnesshub_user', JSON.stringify(user));
-            localStorage.setItem('currentUser', JSON.stringify(user));
-        }
+        // 4. No localStorage update needed — dashboard loads from Supabase
 
         // 5. Show success screen then redirect
         const container = document.querySelector('.payment-container, .container, main');

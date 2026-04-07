@@ -1011,7 +1011,7 @@
                 'billing': {
                     title: 'Billing & Payments 💳',
                     get content() {
-                        const user = JSON.parse(localStorage.getItem('fitnesshub_user') || '{}');
+                        const user = window.dashboardState?.userProfile || window.userProfile || {};
                         const plan = user.plan || { name: 'Starter Plan', price: 999 };
                         const enrollDate = user.paymentDate ? new Date(user.paymentDate) : new Date();
                         const renewalDate = new Date(enrollDate);

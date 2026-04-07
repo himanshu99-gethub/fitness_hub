@@ -286,6 +286,54 @@ app.delete('/api/admin/user/:id', async (req, res) => {
     }
 });
 
+app.put('/api/admin/user/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        // Find user by email
+        const userResult = await findUserByEmail(email);
+        if (!userResult.success || !userResult.user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+        
+        // Prepare update data
+        const updateData = {};
+        const body = req.body;
+        
+        // Map frontend fields to backend
+        if (body.full_name) {
+            const parts = body.full_name.trim().split(' ');
+            updateData.first_name = parts[0];
+            updateData.last_name = parts.slice(1).join(' ') || 'User';
+        }
+        if (body.phone !== undefined) updateData.phone = body.phone;
+        
+        // Assignments updates
+        if (body.assignments) {
+            if (body.assignments.trainer !== undefined) updateData.trainer = body.assignments.trainer;
+            if (body.assignments.workoutPlan !== undefined) updateData.workout_plan = body.assignments.workoutPlan;
+            if (body.assignments.dietPlan !== undefined) updateData.diet_plan = body.assignments.dietPlan;
+            if (body.assignments.performance !== undefined) updateData.performance = body.assignments.performance;
+            if (body.assignments.notes !== undefined) updateData.notes = body.assignments.notes;
+        }
+
+        // We could also handle updating plan via membership, but since plan is in memberships table, it's complex. 
+        // We will just update user profile details for now.
+
+        // from functions/supabaseHelpers.js
+        const { updateUserProfile } = require('./functions/supabaseHelpers');
+        const updateResult = await updateUserProfile(userResult.user.id, updateData);
+        
+        if (updateResult.success) {
+            res.json({ success: true, message: 'User profile updated successfully', user: updateResult.user });
+        } else {
+            res.status(400).json(updateResult);
+        }
+    } catch (error) {
+        console.error('Update Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Serve frontend pages
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'pages/login.html')));

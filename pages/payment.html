@@ -682,14 +682,7 @@ async function initiatePayment() {
         const activateResult = await apiActivateMembership({ email, membershipId });
         if (!activateResult.success) throw new Error(activateResult.error || 'Membership activation failed');
 
-        // 3. Update local storage
-        const userRaw = localStorage.getItem('fitnesshub_user');
-        if (userRaw) {
-            const user = JSON.parse(userRaw);
-            user.isPaid = true; user.paymentStatus = 'completed'; user.membership_status = 'active';
-            localStorage.setItem('fitnesshub_user', JSON.stringify(user));
-            localStorage.setItem('currentUser', JSON.stringify(user));
-        }
+        // 3. No localStorage update needed — dashboard loads from Supabase
 
         // 4. Show success
         const txnId = 'FH' + Date.now();

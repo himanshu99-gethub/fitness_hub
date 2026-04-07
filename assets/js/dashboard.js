@@ -50,9 +50,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Check for session locally (offline-first)
         const session = localStorage.getItem('fitnesshub_session');
-        const userData = JSON.parse(localStorage.getItem('fitnesshub_user') || 'null');
         
-        if (!session || !userData) {
+        if (!session) {
             console.log('❌ No valid local session found - redirecting to login');
             window.location.href = 'login.html';
             return;
@@ -519,8 +518,8 @@ const fitnessMockData = {
 };
 
 function loadWorkoutData() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user')) || {};
-    const planType = userData.plan?.type || 'starter';
+    const userData = window.dashboardState?.userProfile || {};
+    const planType = userData.plan?.type || userData.plan || 'starter';
     const mock = fitnessMockData[planType] || fitnessMockData['starter'];
     
     // Update daily workout card if it exists in dashboard
@@ -544,8 +543,8 @@ function loadWorkoutData() {
 }
 
 function loadDietData() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user')) || {};
-    const planType = userData.plan?.type || 'starter';
+    const userData = window.dashboardState?.userProfile || {};
+    const planType = userData.plan?.type || userData.plan || 'starter';
     const mock = fitnessMockData[planType] || fitnessMockData['starter'];
     
     // Update diet stats
@@ -644,12 +643,10 @@ function selectMembershipPlanOnDashboard(planId) {
     currentSelectedPlanId = planId;
     const plan = membershipPlansOnDashboard.find(p => p.id === planId);
     
-    // Update local user data temporary
-    const user = JSON.parse(localStorage.getItem('fitnesshub_user'));
-    if (user) {
-        user.selectedPlan = planId;
-        user.planPrice = plan.price;
-        localStorage.setItem('fitnesshub_user', JSON.stringify(user));
+    // Update dashboard state temporary
+    if (window.userProfile) {
+        window.userProfile.selectedPlan = planId;
+        window.userProfile.planPrice = plan.price;
     }
     
     // Refresh the grid to show selection
@@ -679,7 +676,7 @@ function proceedToPaymentFromDashboard() {
 // ============================================
 
 function showPaymentWindow() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const userData = window.userProfile;
     const paymentWindowModal = document.getElementById('paymentWindowModal');
     const paymentWindowContent = document.getElementById('paymentWindowContent');
     
@@ -798,7 +795,7 @@ function showWindowPaymentMethod() {
 }
 
 function processWindowPayment() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const userData = window.dashboardState?.userProfile || window.userProfile || {};
     const method = document.getElementById('paymentMethod').value;
     const agreeTerms = document.getElementById('agreeWindowTerms').checked;
 
@@ -854,32 +851,37 @@ function processWindowPayment() {
     }, 2000);
 }
 
-function completePaymentFromWindow(userData) {
-    // Mark payment as complete
-    userData.paymentStatus = 'completed';
-    userData.isPaid = true;
-    userData.paymentDate = new Date().toISOString();
-    
-    if (userData.selectedPlan && !userData.plan) {
-        userData.plan = userData.selectedPlan;
+async function completePaymentFromWindow(userData) {
+    try {
+        const method = document.getElementById('paymentMethod').value || 'card';
+        // Mark payment as complete
+        userData.paymentStatus = 'completed';
+        userData.isPaid = true;
+        userData.paymentDate = new Date().toISOString();
+        
+        if (userData.selectedPlan && !userData.plan) {
+            userData.plan = userData.selectedPlan;
+        }
+
+        // 1. Create Membership in Supabase
+        const membershipResult = await apiCreateMembership({
+            email: userData.email,
+            plan: userData.plan.type || userData.plan.id || 'starter',
+            price: userData.plan.price
+        });
+        
+        let membershipId = null;
+        if (membershipResult && membershipResult.success && membershipResult.data) {
+            membershipId = membershipResult.data.id;
+        }
+
+        // 2. Create Payment Record in Supabase
+        await apiCreatePayment(userData.email, membershipId, userData.plan.price, method);
+        
+        console.log('✅ Payment synced to Supabase successfully');
+    } catch (error) {
+        console.error('❌ Error saving payment to Supabase:', error);
     }
-
-    // Store payment history
-    let paymentHistory = JSON.parse(localStorage.getItem('fitnesshub_payment_history') || '[]');
-    paymentHistory.push({
-        date: userData.paymentDate,
-        planName: userData.plan?.name || 'Plan',
-        planType: userData.plan?.type || 'unknown',
-        amount: userData.plan?.price || 0,
-        status: 'completed'
-    });
-    localStorage.setItem('fitnesshub_payment_history', JSON.stringify(paymentHistory));
-
-    localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
-
-    // Update in Firebase - REMOVED local database sync
-    // TODO: Call Firebase API to sync payment status
-    console.log('✅ Payment synced (Firebase integration needed)');
 
     // Close modal and show dashboard
     const modal = bootstrap.Modal.getInstance(document.getElementById('paymentWindowModal'));
@@ -904,12 +906,15 @@ function completePaymentFromWindow(userData) {
     }, 1000);
 }
 
-function loadPaymentHistory() {
+async function loadPaymentHistory() {
     const historyBody = document.getElementById('paymentHistoryBody');
     const noPaymentMsg = document.getElementById('noPaymentMessage');
     const historyTable = document.getElementById('paymentHistoryTable');
     
-    const paymentHistory = JSON.parse(localStorage.getItem('fitnesshub_payment_history') || '[]');
+    if (!window.userProfile || !window.userProfile.email) return;
+    
+    const response = await apiGetPaymentHistory(window.userProfile.email);
+    const paymentHistory = response.success && response.data ? response.data : [];
     
     if (paymentHistory.length === 0) {
         noPaymentMsg.style.display = 'block';
@@ -923,11 +928,16 @@ function loadPaymentHistory() {
     
     paymentHistory.forEach(payment => {
         const row = document.createElement('tr');
+        const pDate = payment.payment_date || payment.created_at || payment.date;
+        const pAmount = payment.amount || 0;
+        const pStatus = payment.status === 'completed' || payment.status === 'success' ? 'Completed' : payment.status;
+        const pPlan = payment.memberships ? payment.memberships.plan_name : 'Membership Plan'; 
+
         row.innerHTML = `
-            <td>${formatDate(payment.date)}</td>
-            <td><strong>${payment.planName}</strong></td>
-            <td>₹${payment.amount}</td>
-            <td><span class="badge bg-success">Completed</span></td>
+            <td>${formatDate(pDate)}</td>
+            <td><strong>${pPlan}</strong></td>
+            <td>₹${pAmount}</td>
+            <td><span class="badge bg-success">${pStatus}</span></td>
         `;
         historyBody.appendChild(row);
     });
@@ -963,7 +973,7 @@ function showPaymentMethod() {
 }
 
 function processPaymentFromDashboard() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const userData = window.userProfile;
     const method = document.getElementById('paymentMethod').value;
     const agreeTerms = document.getElementById('agreePaymentTerms').checked;
 
@@ -1033,22 +1043,38 @@ function processPaymentFromDashboard() {
     }, 2000);
 }
 
-function completePayment(userData) {
-    // Mark payment as complete
-    userData.paymentStatus = 'completed';
-    userData.isPaid = true;
-    userData.paymentDate = new Date().toISOString();
-    
-    // Use selectedPlan or plan field
-    if (userData.selectedPlan && !userData.plan) {
-        userData.plan = userData.selectedPlan;
+async function completePayment(userData) {
+    try {
+        const method = document.getElementById('paymentMethod').value || 'card';
+        // Mark payment as complete
+        userData.paymentStatus = 'completed';
+        userData.isPaid = true;
+        userData.paymentDate = new Date().toISOString();
+        
+        // Use selectedPlan or plan field
+        if (userData.selectedPlan && !userData.plan) {
+            userData.plan = userData.selectedPlan;
+        }
+
+        // 1. Create Membership in Supabase
+        const membershipResult = await apiCreateMembership({
+            email: userData.email,
+            plan: userData.plan.type || userData.plan.id || 'starter',
+            price: userData.plan.price
+        });
+        
+        let membershipId = null;
+        if (membershipResult && membershipResult.success && membershipResult.data) {
+            membershipId = membershipResult.data.id;
+        }
+
+        // 2. Create Payment Record in Supabase
+        await apiCreatePayment(userData.email, membershipId, userData.plan.price, method);
+        
+        console.log('✅ Payment synced to Supabase successfully');
+    } catch (error) {
+        console.error('❌ Error saving payment to Supabase:', error);
     }
-
-    localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
-
-    // SYNC: Update registered users list for admin panel - REMOVED
-    // Using Firebase only now
-    console.log('✅ Payment status synced (Local Admin List sync removed)');
 
     // Hide payment section
     const paymentSection = document.getElementById('paymentSection');
@@ -1066,7 +1092,7 @@ function completePayment(userData) {
 }
 
 function checkPaymentStatus() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const userData = window.userProfile;
     const paymentSection = document.getElementById('paymentSection');
     
     console.log('💳 Checking Payment Status:', userData?.paymentStatus, 'isPaid:', userData?.isPaid);
@@ -1101,7 +1127,7 @@ function checkPaymentStatus() {
 // ============================================
 
 function checkProfileCompletion() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const userData = window.userProfile;
     const fillProfileSection = document.getElementById('fillProfileSection');
     const dashboardContentSection = document.getElementById('dashboardContentSection');
     
@@ -1180,35 +1206,30 @@ function saveFillProfile() {
         return;
     }
     
-    // Update user data
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
-    userData.fullName = name;
-    userData.phone = phone;
-    userData.age = ageNum;
-    userData.gender = gender;
-    userData.profileCompleted = true;
-    userData.profileCompletedAt = new Date().toISOString();
-    
-    localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
+    // Update state
+    if (window.userProfile) {
+        window.userProfile.fullName = name;
+        window.userProfile.phone = phone;
+        window.userProfile.age = ageNum;
+        window.userProfile.gender = gender;
+        window.userProfile.profileCompleted = true;
+        window.userProfile.profileCompletedAt = new Date().toISOString();
+    }
     console.log('✅ Profile saved:', name, phone, ageNum, gender);
     
-    // Also update in registered users list
-    const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
-    if (registeredUsers) {
-        try {
-            const users = JSON.parse(registeredUsers);
-            const userIndex = users.findIndex(u => u.email === email);
-            if (userIndex >= 0) {
-                users[userIndex].fullName = name;
-                users[userIndex].phone = phone;
-                users[userIndex].age = ageNum;
-                users[userIndex].gender = gender;
-                users[userIndex].profileCompleted = true;
-                localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
-            }
-        } catch (err) {
-            console.log('⚠️ Error updating registered users:', err);
-        }
+    // Call Supabase update securely
+    if (typeof apiUpdateUser === 'function') {
+        const updateData = {
+            full_name: name,
+            phone: phone,
+            age: ageNum,
+            gender: gender
+        };
+        apiUpdateUser(email, updateData).then(result => {
+             console.log('✅ Profile saved to Supabase:', result);
+        }).catch(err => {
+             console.log('ℹ️ Supabase save error:', err.message);
+        });
     }
     
     // Show success and update display
@@ -1225,7 +1246,9 @@ function logout() {
     if (confirm('Are you sure you want to logout?')) {
         // Clear all session related items
         localStorage.removeItem('fitnesshub_session');
-        localStorage.removeItem('fitnesshub_user');
+        localStorage.removeItem('fitnesshub_fitness_completed');
+        window.userProfile = null;
+        window.dashboardState = {};
         console.log('✅ Session cleared, redirecting...');
         window.location.href = '../index.html';
     }
@@ -1238,7 +1261,7 @@ window.logout = logout;
 
 function openEditProfileModal() {
     try {
-        const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+        const userData = window.userProfile;
         
         if (!userData) {
             showAlert('Error: User data not found', 'danger');
@@ -1276,8 +1299,8 @@ function saveProfileChanges() {
             return;
         }
         
-        const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
-        const sessionData = JSON.parse(localStorage.getItem('fitnesshub_session'));
+        const userData = window.userProfile || {};
+        const sessionData = JSON.parse(localStorage.getItem('fitnesshub_session') || '{}');
         
         // Update user data
         userData.fullName = fullName;
@@ -1291,39 +1314,12 @@ function saveProfileChanges() {
         userData.profileCompletedAt = new Date().toISOString();
         userData.profileCompleted = true;
         
-        // Save to localStorage
-        localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
+        // Update state
         window.dashboardState.userProfile = userData;
+        window.userProfile = userData;
         
-        // SYNC: Also update in registered users list for admin panel display
-        const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
-        if (registeredUsers && sessionData) {
-            try {
-                const users = JSON.parse(registeredUsers);
-                const userIndex = users.findIndex(u => u.email === sessionData.email);
-                if (userIndex >= 0) {
-                    users[userIndex] = {
-                        ...users[userIndex],
-                        fullName: userData.fullName,
-                        phone: userData.phone,
-                        age: userData.age,
-                        gender: userData.gender,
-                        height: userData.height,
-                        weight: userData.weight,
-                        goal: userData.goal,
-                        experience: userData.experience,
-                        profileCompletedAt: userData.profileCompletedAt
-                    };
-                    localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
-                    console.log('✅ Synced profile info to registered users list');
-                }
-            } catch (err) {
-                console.log('⚠️ Error syncing to registered users:', err);
-            }
-        }
-        
-        // Also save to Supabase if configured
-        if (sessionData && typeof updateUser === 'function' && typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
+        // Also save to Supabase 
+        if (sessionData && typeof apiUpdateUser === 'function') {
             const updateData = {
                 full_name: userData.fullName,
                 phone: userData.phone,
@@ -1335,12 +1331,12 @@ function saveProfileChanges() {
                 experience: userData.experience
             };
             
-            updateUser(sessionData.email, updateData)
+            apiUpdateUser(sessionData.email, updateData)
                 .then(result => {
                     console.log('✅ Profile updated in Supabase:', result);
                 })
                 .catch(err => {
-                    console.log('ℹ️ Supabase update error (using localStorage):', err.message);
+                    console.log('ℹ️ Supabase update error:', err.message);
                 });
         }
         
@@ -1366,12 +1362,12 @@ function saveProfileChanges() {
 // ============================================
 
 function checkMandatoryProfileCompletion() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const userData = window.userProfile;
     
     if (!userData) return;
     
     // Only show if fitness info is already completed
-    const fitnessCompleted = localStorage.getItem('fitnesshub_fitness_completed');
+    const fitnessCompleted = userData.fitnessCompleted || userData.age;
     if (!fitnessCompleted) {
         return; // Skip if fitness not completed yet
     }
@@ -1440,8 +1436,8 @@ function saveFitnessInfo() {
         }
         
         // Get current user data
-        const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
-        const sessionData = JSON.parse(localStorage.getItem('fitnesshub_session'));
+        const userData = window.dashboardState?.userProfile || window.userProfile || {};
+        const sessionData = JSON.parse(localStorage.getItem('fitnesshub_session') || '{}');
         
         // Update fitness info
         userData.age = parseInt(age);
@@ -1454,42 +1450,16 @@ function saveFitnessInfo() {
         userData.fitnessCompletedAt = new Date().toISOString();
         userData.profileCompleted = true;
         
-        // Save to localStorage
-        localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
-        localStorage.setItem('fitnesshub_fitness_completed', 'true');
+        // No localStorage needed — Supabase is the source of truth
         
         // Update dashboard state
         window.dashboardState.userProfile = userData;
+        window.userProfile = userData;
         window.dashboardState.fitnessCompleted = true;
         console.log('✅ Fitness info saved for:', sessionData.email);
         
-        // SYNC: Also update in registered users list for admin panel display
-        const registeredUsers = localStorage.getItem('fitnesshub_registered_users');
-        if (registeredUsers && sessionData) {
-            try {
-                const users = JSON.parse(registeredUsers);
-                const userIndex = users.findIndex(u => u.email === sessionData.email);
-                if (userIndex >= 0) {
-                    users[userIndex] = {
-                        ...users[userIndex],
-                        age: userData.age,
-                        gender: userData.gender,
-                        height: userData.height,
-                        weight: userData.weight,
-                        goal: userData.goal,
-                        experience: userData.experience,
-                        fitnessCompletedAt: userData.fitnessCompletedAt
-                    };
-                    localStorage.setItem('fitnesshub_registered_users', JSON.stringify(users));
-                    console.log('✅ Synced fitness info to registered users list');
-                }
-            } catch (err) {
-                console.log('⚠️ Error syncing to registered users:', err);
-            }
-        }
-        
-        // Also save to Supabase if configured
-        if (sessionData && typeof updateUser === 'function' && typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
+        // Also save to Supabase
+        if (sessionData && typeof apiUpdateUser === 'function') {
             const updateData = {
                 age: userData.age,
                 gender: userData.gender,
@@ -1499,12 +1469,12 @@ function saveFitnessInfo() {
                 experience: userData.experience
             };
             
-            updateUser(sessionData.email, updateData)
+            apiUpdateUser(sessionData.email, updateData)
                 .then(result => {
                     console.log('✅ Fitness info saved to Supabase:', result);
                 })
                 .catch(err => {
-                    console.log('ℹ️ Supabase save error (using localStorage):', err.message);
+                    console.log('ℹ️ Supabase save error:', err.message);
                 });
         }
         
@@ -1538,35 +1508,26 @@ function saveFitnessInfo() {
 
 async function loadAdminAssignments() {
     try {
-        const sessionData = localStorage.getItem('fitnesshub_session');
-        if (!sessionData) return;
+        const userEmail = window.userProfile?.email || window.dashboardState?.userProfile?.email;
+        if (!userEmail) return;
 
-        const session = JSON.parse(sessionData);
-        const userEmail = session.email;
-
-        // Try to get from Supabase first
-        if (typeof getAdminAssignments === 'function' && typeof isSupabaseConfigured === 'function' && isSupabaseConfigured()) {
-            try {
-                const assignments = await getAdminAssignments(userEmail);
-                if (assignments) {
-                    window.dashboardState.userAssignments = assignments;
-                    localStorage.setItem(`user_${userEmail}_assignments`, JSON.stringify(assignments || {}));
-                    console.log('✅ Admin assignments loaded from Supabase:', assignments);
-                    return;
-                }
-            } catch (err) {
-                console.log('ℹ️ Supabase assignments load error:', err.message);
-            }
-        }
-        
-        // Fall back to localStorage
-        const stored = localStorage.getItem(`user_${userEmail}_assignments`);
-        if (stored) {
-            window.dashboardState.userAssignments = JSON.parse(stored);
-            console.log('✅ Admin assignments loaded from localStorage');
+        // Load assignments from the unified profile response (since we get all fields from users table)
+        const profileResponse = await apiGetProfile(userEmail);
+        if (profileResponse.success && profileResponse.user) {
+             const user = profileResponse.user;
+             const assignments = {
+                 trainer: user.trainer,
+                 workout_plan: user.workout_plan,
+                 diet_plan: user.diet_plan,
+                 performance: user.performance,
+                 notes: user.notes,
+                 experience: user.experience
+             };
+             window.dashboardState.userAssignments = assignments;
+             window.userAssignments = assignments;
+             console.log('✅ Admin assignments loaded from Supabase apiGetProfile');
         } else {
-            window.dashboardState.userAssignments = {};
-            console.log('ℹ️ No admin assignments yet');
+             window.dashboardState.userAssignments = {};
         }
     } catch (error) {
         console.error('❌ Error loading admin assignments:', error);
@@ -2109,7 +2070,7 @@ const membershipPlans = [
 ];
 
 function checkMembershipStatus() {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const userData = window.dashboardState?.userProfile || window.userProfile || null;
     const pending = document.getElementById('membershipStatusPending');
     const active = document.getElementById('membershipStatusActive');
     
@@ -2181,7 +2142,7 @@ function populateMembershipPlansOnDashboard() {
 }
 
 function buyMembership(planType, price, planName) {
-    const userData = JSON.parse(localStorage.getItem('fitnesshub_user'));
+    const userData = window.dashboardState?.userProfile || window.userProfile || null;
     
     if (!userData) {
         showAlert('❌ User data not found. Please login again.', 'danger');
@@ -2195,8 +2156,9 @@ function buyMembership(planType, price, planName) {
         price: price
     };
     
-    // Save to localStorage
-    localStorage.setItem('fitnesshub_user', JSON.stringify(userData));
+    // Update in-memory state
+    window.dashboardState.userProfile = userData;
+    window.userProfile = userData;
     
     console.log('✅ Selected plan:', planName, '- Showing payment window');
     
@@ -2221,10 +2183,8 @@ function buyMembership(planType, price, planName) {
 // ============================================
 
 function setupPaymentReminder() {
-    const userData = localStorage.getItem('fitnesshub_user');
-    if (!userData) return;
-
-    const user = JSON.parse(userData);
+    const user = window.dashboardState?.userProfile || window.userProfile;
+    if (!user) return;
     const regDate = new Date(user.registrationDate);
     const nextPaymentDate = new Date(regDate);
     nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
