@@ -9,6 +9,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
+    <link href="../assets/css/payment.css" rel="stylesheet">
     <style>
         :root {
             --bg-base: #0d0f1a;
@@ -307,7 +308,7 @@
 <!-- Page Guard: shown while checking auth, hidden once verified -->
 <div id="pageGuard">
     <div class="spinner"></div>
-    <p style="color:var(--text-muted); font-size:14px;">Verifying membership status...</p>
+    <p class="guard-text">Verifying membership status...</p>
 </div>
 
 <!-- Header -->
@@ -326,7 +327,7 @@
         <div class="step-sep"></div>
         <div class="step-item">
             <div class="step-dot active">3</div>
-            <span style="color:var(--text-main); font-weight:600;">Payment</span>
+            <span class="step-active-text">Payment</span>
         </div>
         <div class="step-sep"></div>
         <div class="step-item">
@@ -361,7 +362,7 @@
 
     <!-- Right: Payment Form -->
     <div class="payment-card">
-        <h3><i class="fas fa-credit-card" style="color:var(--accent); margin-right:8px;"></i>Payment Details</h3>
+        <h3><i class="fas fa-credit-card payment-details-icon"></i>Payment Details</h3>
 
         <div id="payAlertContainer"></div>
 
@@ -389,7 +390,7 @@
         <div class="form-section active" id="section-card">
             <div class="card-icon-row">
                 <span class="card-brand">💳</span>
-                <span style="font-size:11px; color:var(--text-muted); align-self:center;">Visa, Mastercard, Rupay accepted</span>
+                <span class="card-accepted-text">Visa, Mastercard, Rupay accepted</span>
             </div>
             <label class="pay-label">Card Number</label>
             <input type="text" id="cardNumber" class="pay-input" placeholder="1234 5678 9012 3456" maxlength="19" inputmode="numeric">
@@ -416,7 +417,7 @@
                 <span class="upi-prefix">UPI / </span>
                 <input type="text" id="upiId" class="pay-input" placeholder="yourname@upi">
             </div>
-            <p style="font-size:12px; color:var(--text-muted);">
+            <p class="upi-info-text">
                 <i class="fas fa-info-circle"></i> Enter your UPI ID (e.g., name@okaxis, name@paytm)
             </p>
         </div>
@@ -483,19 +484,19 @@
 </main>
 
 <!-- Success State (replaces pay-main) -->
-<div id="successState" style="max-width:600px; margin:0 auto;">
+<div id="successState">
     <div class="success-icon-big">✅</div>
-    <h2 style="font-family:'Space Grotesk',sans-serif; font-size:36px; font-weight:800; text-transform:uppercase; letter-spacing:-0.04em; margin-bottom:12px;">
+    <h2 class="success-title">
         Payment Successful!
     </h2>
-    <p style="color:var(--text-muted); font-size:18px; margin-bottom:8px;">
-        Welcome to Fitness Hub! Your membership is now <strong style="color:var(--green);">active</strong>.
+    <p class="success-subtitle">
+        Welcome to Fitness Hub! Your membership is now <strong class="active-status">active</strong>.
     </p>
-    <p style="color:var(--text-muted); font-size:14px;">
-        Transaction ID: <strong id="txnId" style="color:var(--text-main);"></strong>
+    <p class="txn-info">
+        Transaction ID: <strong id="txnId" class="txn-id-val"></strong>
     </p>
-    <p style="color:var(--text-muted); font-size:14px; margin-top:24px;">
-        Redirecting to your dashboard in <span id="countdown" style="color:var(--accent);">3</span>s...
+    <p class="redirect-text">
+        Redirecting to your dashboard in <span id="countdown" class="countdown-timer">3</span>s...
     </p>
 </div>
 

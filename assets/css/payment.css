@@ -1,0 +1,70 @@
+/* PAYMENT PAGE SPECIFIC STYLES */
+
+.guard-text {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.step-active-text {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.payment-details-icon {
+    color: var(--accent);
+    margin-right: 8px;
+}
+
+.card-accepted-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    align-self: center;
+}
+
+.upi-info-text {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+#successState {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.success-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+    margin-bottom: 12px;
+}
+
+.success-subtitle {
+    color: var(--text-muted);
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+.active-status {
+    color: var(--green);
+}
+
+.txn-info {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.txn-id-val {
+    color: var(--text-main);
+}
+
+.redirect-text {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: 24px;
+}
+
+.countdown-timer {
+    color: var(--accent);
+}
