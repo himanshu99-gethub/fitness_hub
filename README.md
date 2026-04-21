@@ -35,5 +35,3 @@ Fitness Hub is a state-of-the-art gym management system designed for a premium u
 ### 🤝 Contributing
 Feel free to fork the repository and submit pull requests!
 
----
-*Powered by DeepMind Antigravity AI*
