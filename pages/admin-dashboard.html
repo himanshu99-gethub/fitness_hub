@@ -163,7 +163,7 @@
 
     <!-- Edit User Modal -->
     <div class="modal fade" id="editUserModal" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-centered"> <!-- XL and Centered for better fit -->
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"> <!-- XL, Centered, and Scrollable for robustness -->
             <div class="modal-content border-0">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="fas fa-user-edit"></i> Manage User Profile</h5>
@@ -175,7 +175,7 @@
                             
                             <!-- Primary Identity Section -->
                             <div class="col-lg-4">
-                                <div class="admin-subpanel mb-0 h-100">
+                                <div class="admin-subpanel mb-0">
                                     <h6 class="text-neon-bold mb-3"><i class="fas fa-id-card"></i> Identity & Contact</h6>
                                     <div class="mb-2">
                                         <label class="form-label mb-1" for="editUserName">Full Name</label>
@@ -187,7 +187,7 @@
                                     </div>
                                     <div class="mb-2">
                                         <label class="form-label mb-1" for="editUserPhone">Phone Number</label>
-                                        <input type="text" class="form-control py-2" id="editUserPhone" disabled title="Phone">
+                                        <input type="text" class="form-control py-2" id="editUserPhone" title="Phone">
                                     </div>
                                     <div class="mb-0">
                                         <label class="form-label mb-1" for="editUserPlan">Membership Plan</label>
@@ -202,31 +202,44 @@
 
                             <!-- Fitness Metrics Section -->
                             <div class="col-lg-4">
-                                <div class="admin-subpanel mb-0 h-100">
+                                <div class="admin-subpanel mb-0">
                                     <h6 class="text-neon-bold mb-3"><i class="fas fa-heartbeat"></i> Health & Fitness</h6>
                                     <div class="row g-2 mb-2">
                                         <div class="col-6">
                                             <label class="form-label mb-1" for="editUserAge">Age</label>
-                                            <input type="number" class="form-control py-2" id="editUserAge" disabled title="Age">
+                                            <input type="number" class="form-control py-2" id="editUserAge" title="Age">
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label mb-1" for="editUserGender">Gender</label>
-                                            <input type="text" class="form-control py-2" id="editUserGender" disabled title="Gender">
+                                            <select class="form-control py-2" id="editUserGender" title="Gender">
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
                                         </div>
                                     </div>
-                                    <div class="row g-2 mb-2">
+                                    <div class="row g-2 mb-1">
                                         <div class="col-6">
                                             <label class="form-label mb-1" for="editUserWeight">Weight (kg)</label>
-                                            <input type="number" class="form-control py-2" id="editUserWeight" disabled title="Weight">
+                                            <input type="number" step="0.1" class="form-control py-2" id="editUserWeight" title="Weight">
                                         </div>
                                         <div class="col-6">
                                             <label class="form-label mb-1" for="editUserHeight">Height (cm)</label>
-                                            <input type="number" class="form-control py-2" id="editUserHeight" disabled title="Height">
+                                            <input type="number" step="0.1" class="form-control py-2" id="editUserHeight" title="Height">
                                         </div>
                                     </div>
                                     <div class="mb-2">
                                         <label class="form-label mb-1" for="editUserGoal">Fitness Goal</label>
-                                        <input type="text" class="form-control py-2" id="editUserGoal" disabled title="Fitness Goal">
+                                        <input type="text" class="form-control py-2" id="editUserGoal" title="Fitness Goal">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label mb-1" for="editUserExperience">Training Experience</label>
+                                        <select class="form-control py-2" id="editUserExperience" title="Training Experience">
+                                            <option value="Beginner">Beginner</option>
+                                            <option value="Intermediate">Intermediate</option>
+                                            <option value="Advanced">Advanced</option>
+                                            <option value="Elite">Elite</option>
+                                        </select>
                                     </div>
                                     <div class="mb-0">
                                         <div class="alert-brutalist p-2 rounded-0 m-0 border-0 bg-opacity-10 bg-info">
@@ -238,7 +251,7 @@
 
                             <!-- Assignments Section -->
                             <div class="col-lg-4">
-                                <div class="admin-subpanel mb-0 h-100">
+                                <div class="admin-subpanel mb-0">
                                     <h6 class="text-neon-bold mb-3"><i class="fas fa-tasks"></i> Assignments</h6>
                                     <div class="mb-2">
                                         <label class="form-label mb-1" for="editUserTrainer">Coach/Trainer</label>
@@ -308,13 +321,13 @@
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" onclick="deleteUser()">
-                        <i class="fas fa-trash"></i> Delete User
+                <div class="modal-footer border-top border-secondary bg-dark bg-opacity-50">
+                    <button type="button" class="btn btn-manage-danger" onclick="deleteUser(null, event)">
+                        <i class="fas fa-trash-alt"></i> DELETE USER
                     </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-success" onclick="saveUserChanges()">
-                        <i class="fas fa-save"></i> Save Changes
+                    <button type="button" class="btn btn-manage-secondary" data-bs-dismiss="modal">CLOSE</button>
+                    <button type="button" class="btn btn-manage-success" onclick="saveUserChanges()">
+                        <i class="fas fa-save"></i> SAVE CHANGES
                     </button>
                 </div>
             </div>

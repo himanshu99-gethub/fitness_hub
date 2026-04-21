@@ -135,28 +135,7 @@ async function loadAllUsers() {
     }
 }
 
-async function purgeUser(userId) {
-    if (!confirm('🚨 CRITICAL ACTION: Are you sure you want to PERMANENTLY PURGE this account? \n\nThis will delete all User data, Payment history, and Membership records from the database. This action CANNOT be undone.')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/admin/user/${userId}`, {
-            method: 'DELETE'
-        });
-        const result = await response.json();
-        
-        if (result.success) {
-            alert('✅ Account fully purged and deleted successfully.');
-            loadAllUsers(); // Reload the list from backend
-        } else {
-            alert('❌ Failed to purge account: ' + (result.error || 'Server error'));
-        }
-    } catch (err) {
-        console.error('Error purging user:', err);
-        alert('❌ Error communicating with server. Check console for details.');
-    }
-}
+
 
 function getMergedUsers() {
     // Legacy localStorage fallback removed — Supabase is the sole source of truth
@@ -228,15 +207,10 @@ function displayUsers() {
                         <i class="fas fa-book"></i> Experience: ${userData?.experience || 'N/A'}
                     </small>
                 </div>
-                <div class="d-flex flex-column gap-2">
-                    <button class="btn-manage" onclick="openEditUserModal('${user.email}')">
-                        <i class="fas fa-edit"></i> Manage
+                <div class="d-flex">
+                    <button class="btn-manage flex-grow-1" onclick="openEditUserModal('${user.email}')">
+                        <i class="fas fa-edit"></i> MANAGE
                     </button>
-                    ${user.id ? `
-                    <button class="btn btn-sm btn-outline-danger" onclick="purgeUser('${user.id}')" title="Permanently delete this account from Supabase">
-                        <i class="fas fa-trash-alt"></i> Purge
-                    </button>
-                    ` : ''}
                 </div>
             </div>
         `;
@@ -375,15 +349,12 @@ function loadAndDisplayActiveMembers() {
                         <strong>BMI: ${bmi}</strong>
                     </small>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn-manage" onclick="contactPendingMember('${user.email}')" style="flex: 1;">
-                        <i class="fas fa-phone"></i> Contact
+                <div style="display: flex; gap: 8px; margin-top: 15px;">
+                    <button class="btn-manage" onclick="contactPendingMember('${user.email}')" style="flex: 1; background: rgba(34, 211, 238, 0.1); border: 1px solid #22d3ee; color: #22d3ee;">
+                        <i class="fas fa-phone"></i> CONTACT
                     </button>
                     <button class="btn-manage" onclick="openEditUserModal('${user.email}')" style="flex: 1;">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="btn-manage" onclick="deleteUser('${user.email}')" style="flex: 0 0 40px; background-color: #ff4444; color: white;">
-                        <i class="fas fa-trash-alt"></i>
+                        <i class="fas fa-edit"></i> MANAGE
                     </button>
                 </div>
             </div>
@@ -466,15 +437,12 @@ function loadAndDisplayPendingMembers() {
                         <strong>BMI: ${bmi}</strong>
                     </small>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn-manage" onclick="contactPendingMember('${user.email}')" style="flex: 1;">
-                        <i class="fas fa-phone"></i> Contact
+                <div style="display: flex; gap: 8px; margin-top: 15px;">
+                    <button class="btn-manage" onclick="contactPendingMember('${user.email}')" style="flex: 1; background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; color: #ffc107;">
+                        <i class="fas fa-phone"></i> CONTACT
                     </button>
                     <button class="btn-manage" onclick="openEditUserModal('${user.email}')" style="flex: 1;">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                    <button class="btn-manage" onclick="deleteUser('${user.email}')" style="flex: 0 0 40px; background-color: #ff4444; color: white;">
-                        <i class="fas fa-trash-alt"></i>
+                        <i class="fas fa-edit"></i> MANAGE
                     </button>
                 </div>
             </div>
@@ -535,20 +503,32 @@ function openEditUserModal(email) {
     currentEditingUser = user;
 
     // Populate form using user object properties
-    document.getElementById('editUserName').value = user.fullName || user.full_name || '';
-    document.getElementById('editUserEmail').value = user.email || '';
-    document.getElementById('editUserPhone').value = user.phone || '';
+    const nameInput = document.getElementById('editUserName');
+    const emailInput = document.getElementById('editUserEmail');
+    const phoneInput = document.getElementById('editUserPhone');
+    const planSelect = document.getElementById('editUserPlan');
+    
+    if (nameInput) nameInput.value = user.fullName || user.full_name || '';
+    if (emailInput) emailInput.value = user.email || '';
+    if (phoneInput) phoneInput.value = user.phone || '';
     
     const planType = typeof user.plan === 'object' ? user.plan.type : user.plan;
-    document.getElementById('editUserPlan').value = planType || 'starter';
+    if (planSelect) planSelect.value = planType || 'starter';
     
     // Populate Fitness Information
-    document.getElementById('editUserAge').value = user.age || '-';
-    document.getElementById('editUserGender').value = user.gender || '-';
-    document.getElementById('editUserWeight').value = user.weight || '-';
-    document.getElementById('editUserHeight').value = user.height || '-';
-    document.getElementById('editUserGoal').value = user.goal || '-';
-    document.getElementById('editUserExperience').value = user.experience || '-';
+    const ageInput = document.getElementById('editUserAge');
+    const genderSelect = document.getElementById('editUserGender');
+    const weightInput = document.getElementById('editUserWeight');
+    const heightInput = document.getElementById('editUserHeight');
+    const goalInput = document.getElementById('editUserGoal');
+    const experienceSelect = document.getElementById('editUserExperience');
+
+    if (ageInput) ageInput.value = user.age || '';
+    if (genderSelect) genderSelect.value = user.gender || 'Male';
+    if (weightInput) weightInput.value = user.weight || '';
+    if (heightInput) heightInput.value = user.height || '';
+    if (goalInput) goalInput.value = user.goal || '';
+    if (experienceSelect) experienceSelect.value = user.experience || 'Beginner';
     
     // Calculate and display BMI
     let bmiDisplay = '-';
@@ -562,22 +542,36 @@ function openEditUserModal(email) {
         else bmiStatus = '(Obese)';
         bmiDisplay = `${bmi} ${bmiStatus}`;
     }
-    document.getElementById('editUserBMI').textContent = bmiDisplay;
+    const bmiElement = document.getElementById('editUserBMI');
+    if (bmiElement) bmiElement.textContent = bmiDisplay;
     
-    document.getElementById('editUserTrainer').value = user.trainer || '';
-    document.getElementById('editUserWorkout').value = user.workout_plan || '';
-    document.getElementById('editUserDiet').value = user.diet_plan || '';
-    document.getElementById('editUserPerformance').value = user.performance || 5;
-    document.getElementById('editUserNotes').value = user.notes || '';
+    const trainerSelect = document.getElementById('editUserTrainer');
+    const workoutSelect = document.getElementById('editUserWorkout');
+    const dietSelect = document.getElementById('editUserDiet');
+    const performanceInput = document.getElementById('editUserPerformance');
+    const notesArea = document.getElementById('editUserNotes');
+
+    if (trainerSelect) trainerSelect.value = user.trainer || '';
+    if (workoutSelect) workoutSelect.value = user.workout_plan || '';
+    if (dietSelect) dietSelect.value = user.diet_plan || '';
+    if (performanceInput) performanceInput.value = user.performance || 5;
+    if (notesArea) notesArea.value = user.notes || '';
 
     // Update stats
-    document.getElementById('weightProgress').textContent = `${user.weight || '-'} kg`;
-    document.getElementById('workoutsCompleted').textContent = '12/30';
-    document.getElementById('memberSince').textContent = formatDate(user.registrationDate || user.created_at);
+    const weightProg = document.getElementById('weightProgress');
+    const workoutsComp = document.getElementById('workoutsCompleted');
+    const memberSinceEl = document.getElementById('memberSince');
+
+    if (weightProg) weightProg.textContent = `${user.weight || '-'} kg`;
+    if (workoutsComp) workoutsComp.textContent = '12/30';
+    if (memberSinceEl) memberSinceEl.textContent = formatDate(user.registrationDate || user.created_at);
 
     // Open modal
-    const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
-    modal.show();
+    const modalElement = document.getElementById('editUserModal');
+    if (modalElement) {
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+    }
 }
 
 // ============================================
@@ -588,12 +582,17 @@ async function saveUserChanges() {
     if (!currentEditingUser) return;
 
     const email = currentEditingUser.email;
-    const newPlan = document.getElementById('editUserPlan').value;
     
     const updateData = {
         full_name: document.getElementById('editUserName').value,
         phone: document.getElementById('editUserPhone').value,
-        plan: newPlan,
+        age: parseInt(document.getElementById('editUserAge').value),
+        gender: document.getElementById('editUserGender').value,
+        weight: parseFloat(document.getElementById('editUserWeight').value),
+        height: parseFloat(document.getElementById('editUserHeight').value),
+        goal: document.getElementById('editUserGoal').value,
+        experience: document.getElementById('editUserExperience').value,
+        plan: document.getElementById('editUserPlan').value,
         assignments: {
             trainer: document.getElementById('editUserTrainer').value,
             workoutPlan: document.getElementById('editUserWorkout').value,
@@ -603,30 +602,45 @@ async function saveUserChanges() {
         }
     };
 
-    // Try to save to Supabase asynchronously
-    if (typeof apiUpdateUser === 'function') {
-        try {
-            const result = await apiUpdateUser(email, updateData);
+    // Try to save via API
+    try {
+        // Use apiUpdateUser from api-client.js or fallback to fetch
+        const updateFunc = window.apiUpdateUser || (window.apiClient && window.apiClient.updateUser);
+        
+        if (typeof updateFunc === 'function') {
+            const result = await updateFunc(email, updateData);
             if (result.success) {
                 alert('User details updated successfully!');
             } else {
-                alert('Failed to update user: ' + result.error);
+                alert('Failed to update user: ' + (result.error || 'Server error'));
             }
-        } catch (err) {
-            console.error('API Update User Error:', err);
-            alert('An error occurred while updating the user.');
+        } else {
+            // Manual fetch fallback
+            const response = await fetch(`/api/admin/user/${encodeURIComponent(email)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('User details updated successfully!');
+            } else {
+                alert('Failed to update: ' + (result.error || 'Unknown error'));
+            }
         }
-    } else {
-        alert('apiUpdateUser is not defined. Cannot update Supabase.');
+    } catch (err) {
+        console.error('Update User Error:', err);
+        alert('An error occurred while updating the user: ' + err.message);
     }
 
     // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+    const modalEl = document.getElementById('editUserModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
     if (modal) {
         modal.hide();
     }
     
-    // Reload users
+    // Reload users to show updated data
     loadAllUsers();
 }
 
@@ -634,13 +648,23 @@ async function saveUserChanges() {
 // DELETE USER
 // ============================================
 
-async function deleteUser(emailParam) {
+async function deleteUser(emailParam, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
     let email = emailParam;
     let fullName = "User";
     let user = null;
     
+    console.log('🗑️ Delete request for:', emailParam || 'current editing user');
+
     if (!email) {
-        if (!currentEditingUser) return;
+        if (!currentEditingUser) {
+            console.error('❌ No user currently being edited for deletion');
+            return;
+        }
         email = currentEditingUser.email;
         user = currentEditingUser;
     } else {
@@ -649,39 +673,79 @@ async function deleteUser(emailParam) {
     
     if (user) {
         fullName = user.fullName || user.full_name || email.split('@')[0];
+    } else {
+        // Last ditch attempt to find user by email in allUsers if not already found
+        user = allUsers.find(u => u.email === email);
+        if (user) fullName = user.fullName || user.full_name || email.split('@')[0];
     }
     
-    // Confirm deletion
-    if (!confirm(`🔴 Are you sure you want to completely purge "${fullName}" from the system?\n\nThis will permanently delete:\n- Their account\n- Their membership\n- All payment history\n\nThis action cannot be undone!`)) {
+    const userId = user ? (user.id || user.user_id) : null;
+    
+    console.log('👤 Target user found:', user);
+    console.log('🆔 Target User ID:', userId);
+
+    if (!userId) {
+        showBrutalistAlert('❌ Cannot delete: User ID not found.', 'error');
         return;
     }
-    
-    if (user && user.id) {
-        try {
-            const response = await fetch(`/api/admin/user/${user.id}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
-            });
 
-            const result = await response.json();
+    // Use custom brutalist confirmation instead of native confirm()
+    const confirmed = await showBrutalistConfirm(
+        `PURGE USER?`,
+        `Are you sure you want to completely remove <strong>${fullName}</strong> from the system?<br><br><small class="text-danger">This action permanently deletes all history and cannot be undone.</small>`,
+        'PURGE NOW',
+        'CANCEL'
+    );
+
+    if (!confirmed) return;
+    
+    
+    if (userId) {
+        try {
+            console.log(`📡 Sending DELETE request for user ID: ${userId}`);
             
-            if (result.success) {
-                alert('User completely purged from the system.');
-                // If it was from the modal, close the modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
-                if (modal) modal.hide();
+            // Try using the window.apiDeleteUser first if available
+            const deleteFunc = window.apiDeleteUser || (window.apiClient && window.apiClient.deleteUser);
+            
+            let success = false;
+            let errorMessage = '';
+
+            if (typeof deleteFunc === 'function') {
+                const result = await deleteFunc(userId);
+                success = result.success;
+                errorMessage = result.error || 'Server error';
+            } else {
+                // Fallback to manual fetch
+                const response = await fetch(`/api/admin/user/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                success = result.success;
+                errorMessage = result.error || 'Unknown error';
+            }
+            
+            if (success) {
+                // If it was from the modal, close the modal first
+                const modalElement = document.getElementById('editUserModal');
+                if (modalElement) {
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) modal.hide();
+                }
+                
+                showBrutalistAlert('✅ User completely purged from the system.', 'success');
                 loadAllUsers(); // Refresh the UI
             } else {
-                alert('Failed to delete user: ' + (result.error || 'Unknown error'));
+                showBrutalistAlert('❌ Failed to delete user: ' + errorMessage, 'error');
             }
         } catch (error) {
-            console.error('Delete error:', error);
-            alert('An error occurred while deleting the user.');
+            console.error('❌ Delete error:', error);
+            showBrutalistAlert('❌ API error occurred. Check console.', 'error');
         }
-    } else {
-        alert('Cannot delete: User ID not found.');
     }
 }
+
 
 // ============================================
 // ADMIN LOGOUT
@@ -1000,54 +1064,161 @@ function formatDate(dateString) {
     });
 }
 
+// ============================================
+// CUSTOM BRUTALIST DIALOGS
+// ============================================
+
 /**
- * Deletes a user from the system
- * @param {string} email - Email of the user to delete
+ * Shows a custom brutalist alert
  */
-function deleteUser(email) {
-    if (!confirm(`Are you sure you want to delete the user with email ${email}? This action cannot be undone.`)) {
-        return;
-    }
+function showBrutalistAlert(message, type = 'info') {
+    const overlay = document.createElement('div');
+    overlay.className = 'brutalist-overlay';
+    overlay.innerHTML = `
+        <div class="brutalist-dialog alert-${type}">
+            <div class="dialog-header">${type.toUpperCase()}</div>
+            <div class="dialog-body">${message}</div>
+            <div class="dialog-footer">
+                <button class="brutalist-btn-sm" onclick="this.closest('.brutalist-overlay').remove()">OK</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    
+    // Auto remove after 5 seconds if not clicked
+    setTimeout(() => {
+        if (overlay.parentNode) overlay.remove();
+    }, 5000);
+}
 
-    try {
-        // Call server API to delete user from Supabase
-        fetch(`/api/admin/user/${encodeURIComponent(email)}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to delete user');
-            }
-
-            // Clear session if admin just deleted the currently logged-in user (edge case)
-            const session = JSON.parse(localStorage.getItem('fitnesshub_session') || '{}');
-            if (session.email === email) {
-                localStorage.removeItem('fitnesshub_session');
-            }
-
-            alert('Account Purged Successfully. The user can now register again as a new member.');
-            
-            // Refresh the views
-            if (typeof loadStats === 'function') loadStats();
-            if (typeof loadAllUsers === 'function') loadAllUsers();
-            if (typeof loadAndDisplayActiveMembers === 'function') loadAndDisplayActiveMembers();
-            if (typeof loadAndDisplayPendingMembers === 'function') loadAndDisplayPendingMembers();
-        })
-        .catch(err => {
-            console.error('Error deleting user:', err);
-            alert('Failed to delete user: ' + err.message);
-        });
+/**
+ * Shows a custom brutalist confirmation
+ */
+function showBrutalistConfirm(title, message, okText = 'OK', cancelText = 'CANCEL') {
+    return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'brutalist-overlay';
+        overlay.innerHTML = `
+            <div class="brutalist-dialog">
+                <div class="dialog-header">${title}</div>
+                <div class="dialog-body">${message}</div>
+                <div class="dialog-footer">
+                    <button class="brutalist-btn-sm cancel-btn">${cancelText}</button>
+                    <button class="brutalist-btn-sm ok-btn">${okText}</button>
+                </div>
+            </div>
+        `;
         
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Failed to delete user. Please check console for details.');
-    }
+        document.body.appendChild(overlay);
+        
+        const okBtn = overlay.querySelector('.ok-btn');
+        const cancelBtn = overlay.querySelector('.cancel-btn');
+        
+        okBtn.onclick = () => {
+            overlay.remove();
+            resolve(true);
+        };
+        
+        cancelBtn.onclick = () => {
+            overlay.remove();
+            resolve(false);
+        };
+    });
+}
+
+// Add CSS for brutalist dialogs dynamically if not present
+if (!document.getElementById('brutalist-dialog-styles')) {
+    const style = document.createElement('style');
+    style.id = 'brutalist-dialog-styles';
+    style.textContent = `
+        .brutalist-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        .brutalist-dialog {
+            background: #0a0a0a;
+            border: 3px solid #22d3ee;
+            padding: 0;
+            width: 90%;
+            max-width: 450px;
+            color: #fff;
+            box-shadow: 10px 10px 0px #000;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .brutalist-dialog.alert-error { border-color: #ff0055; }
+        .brutalist-dialog.alert-success { border-color: #CCFF00; }
+        .dialog-header {
+            background: #22d3ee;
+            color: #000;
+            padding: 8px 15px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .alert-error .dialog-header { background: #ff0055; }
+        .alert-success .dialog-header { background: #CCFF00; }
+        .dialog-body {
+            padding: 25px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .dialog-footer {
+            padding: 15px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            border-top: 1px solid #333;
+        }
+        .brutalist-btn-sm {
+            background: transparent;
+            border: 2px solid #22d3ee;
+            color: #22d3ee;
+            padding: 5px 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .brutalist-btn-sm:hover {
+            background: #22d3ee;
+            color: #000;
+        }
+        .ok-btn {
+            background: #ff0055;
+            border-color: #ff0055;
+            color: #fff;
+        }
+        .ok-btn:hover {
+            background: #cc0044;
+            color: #fff;
+        }
+        .cancel-btn {
+            border-color: #666;
+            color: #666;
+        }
+        .cancel-btn:hover {
+            background: #333;
+            color: #fff;
+        }
+    `;
+    document.head.appendChild(style);
 }
 
 // Global scope availability
 window.deleteUser = deleteUser;
+window.showBrutalistAlert = showBrutalistAlert;
+window.showBrutalistConfirm = showBrutalistConfirm;
 window.contactPendingMember = typeof contactPendingMember !== 'undefined' ? contactPendingMember : undefined;
 window.openEditUserModal = typeof openEditUserModal !== 'undefined' ? openEditUserModal : undefined;
 window.saveUserEdits = typeof saveUserEdits !== 'undefined' ? saveUserEdits : undefined;
 window.closeEditModal = typeof closeEditModal !== 'undefined' ? closeEditModal : undefined;
+

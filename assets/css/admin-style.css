@@ -86,22 +86,98 @@
 }
 
 .btn-manage {
-    background-color: transparent;
-    color: var(--neon-green, #CCFF00);
-    border: 1px solid var(--neon-green, #CCFF00);
-    padding: 8px 15px;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    border-radius: 0 !important;
+    background: linear-gradient(135deg, #22d3ee, #0088cc);
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px !important;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(34, 211, 238, 0.15);
     text-transform: uppercase;
-    font-weight: 600;
-    font-size: 13px;
-    letter-spacing: 0.5px;
+    text-decoration: none;
 }
 
 .btn-manage:hover {
-    background-color: var(--neon-green, #CCFF00);
-    color: var(--primary-dark, #0e0e0e);
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #00ffee, #22d3ee);
+    box-shadow: 0 8px 25px rgba(34, 211, 238, 0.4);
+    filter: brightness(1.1);
+    color: #000;
+}
+
+.btn-manage-success {
+    background: linear-gradient(135deg, #CCFF00, #99ea00);
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px !important;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(204, 255, 0, 0.2);
+}
+
+.btn-manage-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(204, 255, 0, 0.4);
+    filter: brightness(1.1);
+}
+
+.btn-manage-danger {
+    background: linear-gradient(135deg, #ff1744, #d50000);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px !important;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(255, 23, 68, 0.2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-manage-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 23, 68, 0.4);
+    filter: brightness(1.1);
+    color: #fff;
+}
+
+.btn-manage-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 20px;
+    border-radius: 4px !important;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+}
+
+.btn-manage-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.btn-manage i {
+    font-size: 14px;
 }
 
 .btn-delete {

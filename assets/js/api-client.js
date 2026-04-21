@@ -357,11 +357,51 @@ async function apiUpdateUser(email, updateData) {
     }
 }
 
+async function apiDeleteUser(userId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admin/user/${encodeURIComponent(userId)}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Deletion failed');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('❌ Delete user error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         apiRegisterUser, apiLoginUser, apiGetProfile, apiGenerateOTP, apiVerifyOTP,
         apiCreateMembership, apiActivateMembership, apiGetLatestMembership, apiGetActiveMembership, apiGetMembershipHistory,
         apiCreatePayment, apiGetPaymentHistory, apiGetTotalRevenue,
-        apiHealthCheck, apiValidateSession, apiLogoutUser, apiUpdateUser
+        apiHealthCheck, apiValidateSession, apiLogoutUser, apiUpdateUser, apiDeleteUser
     };
 }
+
+// Expose to window
+window.apiClient = {
+    register: apiRegisterUser,
+    login: apiLoginUser,
+    getProfile: apiGetProfile,
+    generateOTP: apiGenerateOTP,
+    verifyOTP: apiVerifyOTP,
+    createMembership: apiCreateMembership,
+    activateMembership: apiActivateMembership,
+    getMembership: apiGetActiveMembership,
+    createPayment: apiCreatePayment,
+    getPaymentHistory: apiGetPaymentHistory,
+    getTotalRevenue: apiGetTotalRevenue,
+    healthCheck: apiHealthCheck,
+    validateSession: apiValidateSession,
+    logout: apiLogoutUser,
+    updateUser: apiUpdateUser,
+    deleteUser: apiDeleteUser
+};
+
+window.apiDeleteUser = apiDeleteUser;
+
